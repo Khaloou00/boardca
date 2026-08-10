@@ -1,5 +1,6 @@
 import type { StateCreator } from "zustand";
 import { supabase } from "@/lib/supabase";
+import { nettoyerPushALaDeconnexion } from "@/lib/push";
 import { mapUser } from "@/lib/mappers";
 import type { BoardStore, AuthSlice } from "../types";
 
@@ -21,6 +22,10 @@ export const createAuthSlice: StateCreator<BoardStore, [], [], AuthSlice> = (set
   },
 
   logout: async () => {
+    // Cet appareil ne doit plus recevoir les notifications du compte qui
+    // s'en va : sinon le suivant qui l'utilise verrait passer ses
+    // convocations et ses PV.
+    await nettoyerPushALaDeconnexion();
     await supabase.auth.signOut();
     set({ profile: null });
   },

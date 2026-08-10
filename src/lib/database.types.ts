@@ -1351,6 +1351,39 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pv: {
         Row: {
           archive_at: string | null
@@ -1830,6 +1863,7 @@ export type Database = {
       get_kpis_gouvernance: { Args: { p_annee?: number }; Returns: Json }
       get_mes_jetons: { Args: { p_user_id?: string }; Returns: Json }
       get_reunion_stats: { Args: { p_reunion_id: string }; Returns: Json }
+      get_vapid_public_key: { Args: never; Returns: string }
       is_ca_member: { Args: never; Returns: boolean }
       is_pca: { Args: never; Returns: boolean }
       is_secretaire: { Args: never; Returns: boolean }
