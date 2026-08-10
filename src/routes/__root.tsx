@@ -20,6 +20,7 @@ import { enregistrerServiceWorker } from "../lib/pwa";
 // l'évaluation du bundle d'entrée. Le navigateur émet cet événement avant
 // que React ne monte : un écouteur posé dans un effet arrive trop tard.
 import "../lib/install-prompt";
+import { InstallFloating } from "../components/install-floating";
 
 function NotFoundComponent() {
   return (
@@ -159,6 +160,10 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AppProvider>
         <Outlet />
+        {/* Invite d'installation : présente sur toutes les pages, y compris
+            l'écran de connexion. Se masque une fois l'app installée et respecte
+            un rejet pendant 7 jours. */}
+        <InstallFloating />
         <Toaster position="top-right" />
       </AppProvider>
     </QueryClientProvider>
