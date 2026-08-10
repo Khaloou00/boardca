@@ -20,7 +20,7 @@ import webpush from "npm:web-push@3.6.7";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-push-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -42,15 +42,27 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  const body = (await req.json().catch(() => null)) as Charge | null;
-  if (!body?.userId) return json({ error: "userId requis" }, 400);
-
-  // Clés VAPID : lues en base, jamais embarquées dans le code.
+  // Clés VAPID + secret d'appel : lus en base, jamais embarqués dans le code.
   const { data: secrets } = await admin
     .from("app_secrets")
     .select("key, value")
-    .in("key", ["vapid_public_key", "vapid_private_key", "vapid_subject"]);
+    .in("key", ["vapid_public_key", "vapid_private_key", "vapid_subject", "push_hook_secret"]);
   const conf = Object.fromEntries((secrets ?? []).map((s) => [s.key, s.value]));
+
+  // `verify_jwt` est désactivé (l'appelant est Postgres via pg_net, il ne porte
+  // pas de JWT) : ce secret partagé est donc la SEULE barrière. Sans lui,
+  // n'importe qui pourrait envoyer une notification à n'importe quel utilisateur.
+  //
+  // Il est lu dans `app_secrets`, exactement là où le trigger le prend : les
+  // deux côtés ne peuvent pas diverger. Ne pas le remplacer par une variable
+  // d'environnement sans la créer — la garde renverrait 401 à chaque appel.
+  if (!conf.push_hook_secret || req.headers.get("x-push-secret") !== conf.push_hook_secret) {
+    return json({ error: "Non autorisé" }, 401);
+  }
+
+  const body = (await req.json().catch(() => null)) as Charge | null;
+  if (!body?.userId) return json({ error: "userId requis" }, 400);
+
   if (!conf.vapid_public_key || !conf.vapid_private_key) {
     return json({ error: "Clés VAPID absentes de app_secrets" }, 500);
   }

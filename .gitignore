@@ -69,3 +69,13 @@ dev-dist/
 # Notes d'analyse internes
 centalheure*.md
 nouveau.md
+
+# Clés de compte de service Firebase — CLÉ PRIVÉE, ne doit JAMAIS être versionnée.
+# Le dépôt étant public, un commit accidentel exposerait un accès complet au
+# projet Firebase (envoi de notifications à tous, lecture des configurations).
+*firebase-adminsdk*.json
+firebase-service-account.json
+**/firebase-service-account.json
+FIREBASE_PUSH_NOTIFICATIONS_GUIDE.md
+implementation_plan.md
+walkthrough.md
