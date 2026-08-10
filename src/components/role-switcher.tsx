@@ -8,16 +8,26 @@ import { ROLE_LABELS, NEW_TO_OLD_ROLE } from "@/lib/role-labels";
 import { toast } from "sonner";
 import { Users, ChevronUp, LogOut, Crown, Loader2 } from "lucide-react";
 
-// Mot de passe commun de démo à tous les comptes seedés. Ce switcher est un outil
-// de démo ("accès instantané") : les 4 rôles basculent juste l'ancien contexte
-// mémoire, mais le PCA doit être une vraie session Supabase (son statut vient de
-// profile.estPresidentCA). Le titulaire du PCA peut changer (Super Admin, etc.) :
-// on résout donc le compte PCA courant EN BASE au moment du clic, jamais en dur.
+// ⚠️ OUTIL DE DÉMONSTRATION — JAMAIS ACTIF EN PRODUCTION.
+//
+// Ce sélecteur re-connecte RÉELLEMENT l'utilisateur sur un autre compte
+// (`storeLogin`), mot de passe commun en dur. Affiché sur toutes les pages, il
+// permettait donc à n'importe quel utilisateur authentifié de devenir Super
+// Administrateur en deux clics : une escalade de privilèges totale.
+//
+// Depuis le 2026-08-10 il n'est rendu QUE si `VITE_DEMO_MODE=1` est présent
+// dans l'environnement de build. Les variables `VITE_*` sont figées au build :
+// une image de production construite sans ce drapeau ne contient tout
+// simplement pas ce chemin de code, il n'y a rien à contourner à l'exécution.
+const MODE_DEMO = import.meta.env.VITE_DEMO_MODE === "1";
+
+// Mot de passe commun aux comptes seedés, utilisé uniquement par le mode démo
+// ci-dessus. À supprimer avec ce composant le jour où la démo n'a plus lieu
+// d'être — et à faire tourner sur les comptes réels dans tous les cas.
 const DEMO_PASSWORD = "0101010101";
 
-// Compte Supabase réel derrière chaque rôle de démo (doit rester synchro avec
-// SEED_EMAIL dans auth.tsx). `action_manager` n'a pas de compte seed → résolu en
-// base au clic (comme le PCA).
+// Compte Supabase réel derrière chaque rôle de démo. `action_manager` n'a pas
+// de compte seed → résolu en base au clic (comme le PCA).
 const SEED_EMAIL: Record<Role, string> = {
   super_admin: "admin@timutech.com",
   secretary: "fofanaaicha@gmail.com",
@@ -43,6 +53,9 @@ export function RoleSwitcher() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
+  // Garde principal : hors mode démo, ce composant ne rend RIEN, nulle part.
+  // Placé après les hooks (règle des Hooks) mais avant tout rendu.
+  if (!MODE_DEMO) return null;
   if (!authReady || !profile || pathname === "/" || pathname.startsWith("/auth")) return null;
 
   // Rôle réel projeté dans l'ancien système de clés (pour comparer avec les

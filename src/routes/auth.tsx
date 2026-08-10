@@ -24,20 +24,12 @@ export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Connexion — BoardCA" }] }),
 });
 
-type Step = "role" | "credentials" | "2fa" | "change-password";
-
-// Comptes réels seedés en base (mot de passe commun de démo). Cliquer une carte
-// pré-remplit ces identifiants ; l'authentification qui suit est un vrai
-// supabase.auth.signInWithPassword — pas une session simulée.
-const DEMO_PASSWORD = "0101010101";
-// Aucun compte « Responsable d'Action » n'est seedé : il se crée à la demande
-// depuis Super Admin · Utilisateurs. Son email reste vide → à saisir à la main.
-const SEED_EMAIL: Record<Role, string> = {
-  super_admin: "admin@timutech.com",
-  secretary: "fofanaaicha@gmail.com",
-  admin: "cisseibrahimkhalilou@gmail.com",
-  action_manager: "",
-};
+// L'étape "2fa" a été RETIRÉE le 2026-08-10 : l'écran acceptait n'importe quels
+// 6 chiffres sans jamais vérifier de TOTP (0 facteur MFA enrôlé en base), et
+// proposait même un bouton « code de démo ». Une 2FA qui accepte tout est pire
+// que pas de 2FA : elle donne une fausse assurance. Une vraie MFA se branchera
+// sur `supabase.auth.mfa.enroll/challenge/verify`.
+type Step = "role" | "credentials" | "change-password";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -50,7 +42,6 @@ function AuthPage() {
   const [role, setRole] = useState<Role | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   // Le PCA n'est pas un rôle mais un attribut (`est_president_ca`) porté par un
   // administrateur : on le résout dynamiquement au clic (jamais codé en dur, le
@@ -58,11 +49,15 @@ function AuthPage() {
   const [pcaMode, setPcaMode] = useState(false);
   const [resolvingPCA, setResolvingPCA] = useState(false);
 
+  // Le choix du profil n'oriente que l'habillage de l'écran suivant : il ne
+  // pré-remplit plus aucun identifiant (les comptes réels étaient exposés en
+  // clair, tous avec le même mot de passe de démo). Le rôle effectif reste
+  // décidé par le profil en base après authentification, jamais par ce clic.
   const pickRole = (r: Role) => {
     setPcaMode(false);
     setRole(r);
-    setEmail(SEED_EMAIL[r]);
-    setPassword(DEMO_PASSWORD);
+    setEmail("");
+    setPassword("");
     setStep("credentials");
   };
 
@@ -82,7 +77,7 @@ function AuthPage() {
       setRole("admin"); // le PCA est un administrateur → même interface mobile
       setPcaMode(true);
       setEmail(pcaEmail);
-      setPassword(DEMO_PASSWORD);
+      setPassword(""); // le mot de passe se saisit, il n'est plus pré-rempli
       setStep("credentials");
     } catch {
       toast.error("Impossible de résoudre le profil PCA");
@@ -97,19 +92,12 @@ function AuthPage() {
     setLoading(true);
     try {
       await storeLogin(email, password);
-      setStep("2fa");
-      toast.info("Code envoyé sur votre application d'authentification");
+      finish();
     } catch {
       toast.error("Identifiants incorrects");
     } finally {
       setLoading(false);
     }
-  };
-
-  const otpFull = otp.join("").length === 6;
-  const submitOtp = () => {
-    if (!otpFull) return toast.error("Code à 6 chiffres requis");
-    finish();
   };
 
   const entrerDansLApp = () => {
@@ -182,18 +170,19 @@ function AuthPage() {
             d'Administration.
           </h2>
           <p className="mt-4 text-navy-foreground/70 max-w-md">
-            Une session sécurisée en 3 étapes : identifiants, code 2FA, biométrie.
+            Accès réservé aux membres et aux services du Conseil, sur identifiants nominatifs.
           </p>
         </div>
+        {/* Ne mentionner ici que ce qui est RÉELLEMENT en place. « 2FA » et
+            « Biométrie » ont été retirés le 2026-08-10 : aucun des deux n'était
+            implémenté (l'écran 2FA acceptait n'importe quel code). À rétablir le
+            jour où la MFA Supabase sera branchée. */}
         <div className="relative flex gap-6 text-xs text-navy-foreground/60">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-gold" /> Chiffré
+            <Shield className="h-4 w-4 text-gold" /> Connexion chiffrée
           </div>
           <div className="flex items-center gap-2">
-            <KeyRound className="h-4 w-4 text-gold" /> 2FA
-          </div>
-          <div className="flex items-center gap-2">
-            <Fingerprint className="h-4 w-4 text-gold" /> Biométrie
+            <KeyRound className="h-4 w-4 text-gold" /> Comptes nominatifs
           </div>
         </div>
       </div>
@@ -321,56 +310,6 @@ function AuthPage() {
             </form>
           )}
 
-          {step === "2fa" && (
-            <div className="animate-in fade-in slide-in-from-right-2">
-              <button
-                onClick={() => setStep("credentials")}
-                className="text-xs text-muted-foreground hover:text-navy flex items-center gap-1"
-              >
-                <ArrowLeft className="h-3 w-3" /> Retour
-              </button>
-              <div className="h-14 w-14 rounded-2xl bg-gold/15 flex items-center justify-center mt-4">
-                <KeyRound className="h-7 w-7 text-gold" />
-              </div>
-              <h1 className="text-3xl font-bold text-navy mt-4">Code 2FA</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Saisissez le code à 6 chiffres depuis votre application.
-              </p>
-              <div className="mt-8 flex gap-2 justify-between">
-                {otp.map((v, i) => (
-                  <input
-                    key={i}
-                    id={`otp-${i}`}
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={v}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, "").slice(0, 1);
-                      const next = [...otp];
-                      next[i] = val;
-                      setOtp(next);
-                      if (val && i < 5) document.getElementById(`otp-${i + 1}`)?.focus();
-                    }}
-                    className="h-14 w-12 text-center text-2xl font-bold rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-gold"
-                  />
-                ))}
-              </div>
-              <button
-                onClick={submitOtp}
-                disabled={!otpFull}
-                className="mt-8 w-full rounded-lg bg-navy text-navy-foreground font-semibold py-3 hover:bg-navy-light disabled:opacity-50 transition inline-flex items-center justify-center gap-2"
-              >
-                Vérifier <ArrowRight className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setOtp(["1", "2", "3", "4", "5", "6"])}
-                className="mt-3 w-full text-xs text-muted-foreground hover:text-navy"
-              >
-                Utiliser un code de démo
-              </button>
-            </div>
-          )}
-
           {step === "change-password" && (
             <div className="animate-in fade-in slide-in-from-right-2">
               <div className="h-16 w-16 rounded-2xl bg-navy flex items-center justify-center mx-auto">
@@ -442,7 +381,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function Stepper({ step }: { step: Step }) {
-  const steps: Step[] = ["role", "credentials", "2fa"];
+  const steps: Step[] = ["role", "credentials"];
   const idx = steps.indexOf(step);
   return (
     <div className="flex items-center gap-2 mb-8">
@@ -451,7 +390,7 @@ function Stepper({ step }: { step: Step }) {
           <div className={`h-1.5 flex-1 rounded-full ${i <= idx ? "bg-gold" : "bg-border"}`} />
         </div>
       ))}
-      <span className="ml-2 text-xs text-muted-foreground">{idx + 1}/3</span>
+      <span className="ml-2 text-xs text-muted-foreground">{idx + 1}/2</span>
     </div>
   );
 }
