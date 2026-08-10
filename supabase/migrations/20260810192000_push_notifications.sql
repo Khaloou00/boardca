@@ -1,0 +1,10 @@
+-- Notifications push — 2026-08-10 (regroupe les migrations push du jour)
+-- Voir supabase/functions/push-send/ pour le transport et src/lib/push.ts côté client.
+--
+-- Deux correctifs sont inclus, chacun trouvé par un test réel et non par lecture :
+--  1. un `v_url` calculé avec une priorité d'opérateurs fautive faisait ÉCHOUER
+--     toute insertion dans `notifications` — donc toute création de réunion ;
+--  2. `pg_net` crée toujours le schéma `net` : `extensions.net.http_post` levait
+--     « cross-database references are not implemented », erreur masquée par le
+--     bloc d'exception (volontaire, mais silencieux).
+-- L'état final ci-dessous est celui vérifié : trigger -> pg_net -> push-send = 200.
