@@ -9,6 +9,8 @@ import {
   ArrowLeft,
   KeyRound,
   CheckCircle2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/brand-logo";
@@ -42,8 +44,9 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-
+  const [showPwd, setShowPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showNewPwd2, setShowNewPwd2] = useState(false);
 
   const submitCreds = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,13 +180,23 @@ function AuthPage() {
                   />
                 </Field>
                 <Field label="Mot de passe">
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPwd ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-input bg-background px-4 py-2.5 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-gold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPwd(!showPwd)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+                      tabIndex={-1}
+                    >
+                      {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </Field>
               </div>
               <button
@@ -216,25 +229,45 @@ function AuthPage() {
                 className="mt-6 space-y-4"
               >
                 <Field label="Nouveau mot de passe">
-                  <input
-                    type="password"
-                    autoFocus
-                    autoComplete="new-password"
-                    value={newPwd}
-                    onChange={(e) => setNewPwd(e.target.value)}
-                    placeholder="Au moins 8 caractères"
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showNewPwd ? "text" : "password"}
+                      autoFocus
+                      autoComplete="new-password"
+                      value={newPwd}
+                      onChange={(e) => setNewPwd(e.target.value)}
+                      placeholder="Au moins 8 caractères"
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-gold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPwd(!showNewPwd)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+                      tabIndex={-1}
+                    >
+                      {showNewPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </Field>
                 <Field label="Confirmer le mot de passe">
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    value={newPwd2}
-                    onChange={(e) => setNewPwd2(e.target.value)}
-                    placeholder="Ressaisissez le mot de passe"
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showNewPwd2 ? "text" : "password"}
+                      autoComplete="new-password"
+                      value={newPwd2}
+                      onChange={(e) => setNewPwd2(e.target.value)}
+                      placeholder="Ressaisissez le mot de passe"
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-gold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPwd2(!showNewPwd2)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+                      tabIndex={-1}
+                    >
+                      {showNewPwd2 ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </Field>
                 {newPwd2.length > 0 && newPwd !== newPwd2 && (
                   <div className="text-[12px] text-red-600">

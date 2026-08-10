@@ -9,11 +9,13 @@ const slides = [
     icon: Shield,
     title: "Le CA entièrement digital.",
     desc: "De la convocation à la signature, un cycle complet, sécurisé et souverain pour le BNETD.",
+    image: "/ LeCAentièrementdigital.png",
   },
   {
     icon: Smartphone,
     title: "Consultation hors-ligne",
     desc: "Lisez et annotez le Board Book où que vous soyez, même sans réseau internet.",
+    image: "/Consultationhorsligne.png",
   },
   {
     icon: ClipboardSignature,
@@ -46,7 +48,7 @@ export function MobileOnboarding() {
       </div>
 
       {/* Main content slider */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-8 text-center overflow-hidden">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center overflow-hidden">
         {slides.map((s, i) => (
           <div
             key={i}
@@ -58,13 +60,27 @@ export function MobileOnboarding() {
                 : "opacity-0 translate-x-12 pointer-events-none"
             }`}
           >
-            <div className="h-24 w-24 rounded-full bg-gold/20 flex items-center justify-center mb-8 border border-gold/30">
-              <s.icon className="h-12 w-12 text-gold" />
+            {/* Image de fond s'il y en a une, avec un overlay sombre pour la lisibilité */}
+            {s.image && (
+              <>
+                <img 
+                  src={s.image} 
+                  alt="" 
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                />
+                <div className="absolute inset-0 bg-navy/85" />
+              </>
+            )}
+
+            <div className="relative z-10 flex flex-col items-center">
+              <div className="h-24 w-24 rounded-full bg-gold/20 flex items-center justify-center mb-8 border border-gold/30">
+                <s.icon className="h-12 w-12 text-gold" />
+              </div>
+              <h2 className="text-3xl font-bold mb-4 tracking-tight">{s.title}</h2>
+              <p className="text-navy-foreground/75 leading-relaxed text-lg">
+                {s.desc}
+              </p>
             </div>
-            <h2 className="text-3xl font-bold mb-4 tracking-tight">{s.title}</h2>
-            <p className="text-navy-foreground/75 leading-relaxed text-lg">
-              {s.desc}
-            </p>
           </div>
         ))}
       </div>

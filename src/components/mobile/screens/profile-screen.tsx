@@ -2,7 +2,7 @@
 // Composant de PREMIER NIVEAU : il n'est plus redéfini à chaque rendu du
 // parent, donc React ne le démonte plus (état local et saisies préservés).
 import { TopBar } from "../shared/ui-components";
-import { NotificationsToggle } from "@/components/notifications-toggle";
+import { PermissionsPanel } from "@/components/permissions-panel";
 import { type Consultation } from "@/lib/consultations";
 import { type PV } from "@/types/domain";
 import { Bell, Calendar, CalendarDays, ChevronRight, Coins, Crown, Download, FileSignature, Fingerprint, ListChecks, LogOut, MailCheck, Send, Shield } from "lucide-react";
@@ -193,7 +193,7 @@ export function ProfileScreen({ nav }: { nav: (v: View) => void }) {
             sur un geste explicite de l'utilisateur, donc depuis un écran comme
             celui-ci — jamais au chargement de l'application. */}
         <div className="mt-4">
-          <NotificationsToggle />
+          <PermissionsPanel />
         </div>
 
         <div className="mt-4 bg-white rounded-2xl border border-slate-100 overflow-hidden">

@@ -11,7 +11,6 @@ import {
   QrCode,
   Download,
   Printer,
-  ScanLine,
   CheckCircle2,
   UserCheck,
   FileText,
@@ -74,7 +73,6 @@ export function AttendancePanel({ meetingId }: { meetingId: string | null }) {
   // Confirmation avant de basculer le statut de séance : les deux actions sont
   // lourdes de conséquences (ouverture du scan / attribution des jetons).
   const [seanceConfirm, setSeanceConfirm] = useState<"en_cours" | "terminee" | null>(null);
-  const [scanBusy, setScanBusy] = useState(false);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Report de séance (quorum non atteint) : formulaire + historique des reports déjà
@@ -183,23 +181,6 @@ export function AttendancePanel({ meetingId }: { meetingId: string | null }) {
       toast.error("Mise à jour de l'émargement impossible");
     } finally {
       setBusyId(null);
-    }
-  };
-
-  const simulerScan = async () => {
-    const prochain = membres.find((u) => !presByUser[u.id]);
-    if (!prochain) {
-      toast.info("Tous les membres sont déjà émargés.");
-      return;
-    }
-    setScanBusy(true);
-    try {
-      await scanPresence(reunion.id, prochain.id, "presentiel");
-      toast.success(`${prochain.nom} a scanné le QR — présence enregistrée.`);
-    } catch {
-      toast.error("Scan impossible");
-    } finally {
-      setScanBusy(false);
     }
   };
 
@@ -673,25 +654,18 @@ export function AttendancePanel({ meetingId }: { meetingId: string | null }) {
           >
             <Download className="h-4 w-4" /> Télécharger le QR Code (PNG)
           </button>
-          <div className="mt-2 grid grid-cols-2 gap-2 w-full">
+          {/* « Simuler un scan » retiré le 2026-08-10 : il marquait le membre
+              suivant comme PHYSIQUEMENT PRÉSENT et annonçait « X a scanné le QR »
+              — une fausse attestation, qui alimente le procès-verbal et le calcul
+              des jetons de présence. Le scan caméra étant désormais réel, et le
+              secrétariat pouvant toujours corriger une présence via l'icône de la
+              feuille d'émargement, ce raccourci n'a plus aucune justification. */}
+          <div className="mt-2 w-full">
             <button
               onClick={imprimerQr}
-              className="inline-flex items-center justify-center gap-2 text-[15px] font-semibold px-3 py-2 rounded-xl bg-white/10 text-white hover:bg-white/15"
+              className="w-full inline-flex items-center justify-center gap-2 text-[15px] font-semibold px-3 py-2 rounded-xl bg-white/10 text-white hover:bg-white/15"
             >
               <Printer className="h-4 w-4" /> Imprimer
-            </button>
-            <button
-              onClick={simulerScan}
-              disabled={cloturee || scanBusy}
-              className="inline-flex items-center justify-center gap-2 text-[15px] font-semibold px-3 py-2 rounded-xl bg-white/10 text-white hover:bg-white/15 disabled:opacity-50"
-              title={cloturee ? "Séance terminée" : "Simuler le scan d'un membre"}
-            >
-              {scanBusy ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ScanLine className="h-4 w-4" />
-              )}{" "}
-              Simuler un scan
             </button>
           </div>
 
@@ -739,7 +713,7 @@ export function AttendancePanel({ meetingId }: { meetingId: string | null }) {
             </div>
             <div className="mt-1 text-[13px] text-white/55">
               {scannes === 0
-                ? "Aucun scan encore — cliquez « Simuler un scan »."
+                ? "Aucun émargement pour l'instant."
                 : scannes === membres.length
                   ? "Tous les membres présents ont été scannés."
                   : `${membres.length - scannes} membre(s) restant(s) à émarger.`}
