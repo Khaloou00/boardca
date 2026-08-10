@@ -64,7 +64,15 @@ function AuthInvitePage() {
   const storeLogin = useBoardStore((s) => s.login);
   const completePasswordChange = useBoardStore((s) => s.completePasswordChange);
 
-  const [email, setEmail] = useState(
+  // Aucun pré-remplissage : l'invité saisit lui-même son adresse. Elle était
+  // reprise du paramètre `?email=` du lien reçu — pratique, mais cela affiche
+  // l'adresse à quiconque ouvre le lien (transfert du mail, écran partagé) et
+  // fait de l'URL un identifiant en clair dans l'historique du navigateur.
+  const [email, setEmail] = useState("");
+  // Le paramètre reste lu, mais UNIQUEMENT pour vérifier qu'une session déjà
+  // posée dans ce navigateur appartient bien au destinataire du lien (voir la
+  // reprise de session plus bas). Il n'est jamais affiché ni pré-rempli.
+  const [emailDuLien] = useState(
     () => new URLSearchParams(window.location.search).get("email") ?? "",
   );
   const [token] = useState(() => new URLSearchParams(window.location.search).get("token") ?? "");
@@ -109,7 +117,10 @@ function AuthInvitePage() {
     (async () => {
       await useBoardStore.getState().loadProfile();
       const profile = useBoardStore.getState().profile;
-      if (profile && profile.email.toLowerCase() === email.trim().toLowerCase()) {
+      // Comparaison avec l'email DU LIEN, pas avec le champ de saisie : celui-ci
+      // est vide au montage, et s'en servir ferait échouer la reprise à tous les
+      // coups — l'invité verrait « lien invalide » alors que sa session est bonne.
+      if (profile && profile.email.toLowerCase() === emailDuLien.trim().toLowerCase()) {
         if (profile.mustChangePassword) {
           setNewPwd("");
           setNewPwd2("");

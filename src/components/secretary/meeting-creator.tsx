@@ -69,7 +69,7 @@ export function MeetingCreator({ onCreated }: { onCreated: (id: string) => void 
   // et que les filtres « séance à venir » du mobile, donc les comparaisons de
   // chaînes sont exactes et insensibles au fuseau.
   const aujourdhui = new Date().toLocaleDateString("en-CA");
-  const [time, setTime] = useState("10:00");
+  const [time, setTime] = useState(""); // saisi, jamais suggéré
   const [location, setLocation] = useState("");
   // Lien de visioconférence : facultatif, mais s'il est saisi il doit être une URL —
   // la contrainte SQL rejette tout le reste, autant le dire ici.

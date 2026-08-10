@@ -61,29 +61,17 @@ function AuthPage() {
     setStep("credentials");
   };
 
-  const pickPCA = async () => {
-    setResolvingPCA(true);
-    try {
-      // RPC dédiée : l'utilisateur est encore anonyme ici et la RLS de `profiles`
-      // interdit les lectures anon — `current_pca_email()` (SECURITY DEFINER) renvoie
-      // uniquement l'email du titulaire courant.
-      const { data: pcaEmail, error } = await supabase.rpc("current_pca_email");
-      if (error || !pcaEmail) {
-        toast.error("Aucun PCA désigné", {
-          description: "Désignez-en un depuis Super Admin · Utilisateurs (icône couronne).",
-        });
-        return;
-      }
-      setRole("admin"); // le PCA est un administrateur → même interface mobile
-      setPcaMode(true);
-      setEmail(pcaEmail);
-      setPassword(""); // le mot de passe se saisit, il n'est plus pré-rempli
-      setStep("credentials");
-    } catch {
-      toast.error("Impossible de résoudre le profil PCA");
-    } finally {
-      setResolvingPCA(false);
-    }
+  // Aucun identifiant n'est pré-rempli. L'écran interrogeait auparavant la RPC
+  // `current_pca_email()` pour remplir l'email du titulaire — mais cette RPC est
+  // appelable SANS être connecté : c'était un endpoint public qui livrait
+  // l'adresse du Président du Conseil à qui la demandait. Le titre de PCA est de
+  // toute façon vérifié après authentification, via `profile.estPresidentCA`.
+  const pickPCA = () => {
+    setRole("admin"); // le PCA est un administrateur → même interface mobile
+    setPcaMode(true);
+    setEmail("");
+    setPassword("");
+    setStep("credentials");
   };
 
   const submitCreds = async (e: React.FormEvent) => {

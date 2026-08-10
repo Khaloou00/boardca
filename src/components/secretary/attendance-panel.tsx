@@ -84,7 +84,10 @@ export function AttendancePanel({ meetingId }: { meetingId: string | null }) {
   const [nouvelleDate, setNouvelleDate] = useState("");
   const [nouvelleHeure, setNouvelleHeure] = useState("");
   const [nouveauLieu, setNouveauLieu] = useState("");
-  const [motif, setMotif] = useState("Quorum non atteint");
+  // Le motif part dans le registre des reports : il doit être écrit par la
+  // personne qui reporte, pas suggéré par l'application. Pré-remplir une
+  // justification revient à en signer une par défaut.
+  const [motif, setMotif] = useState("");
   const [reports, setReports] = useState<ReportSeance[]>([]);
 
   useEffect(() => {
