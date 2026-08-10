@@ -1,19 +1,14 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useApp, ROLE_META, type Role } from "@/lib/app-store";
+import { useApp, ROLE_META } from "@/lib/app-store";
 import { useBoardStore } from "@/store/useBoardStore";
-import { supabase } from "@/lib/supabase";
 import { NEW_TO_OLD_ROLE, ROLE_LABELS } from "@/lib/role-labels";
 import {
-  Fingerprint,
   Shield,
   ArrowRight,
   ArrowLeft,
   KeyRound,
   CheckCircle2,
-  Crown,
-  UserCheck,
-  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/brand-logo";
@@ -29,50 +24,26 @@ export const Route = createFileRoute("/auth")({
 // proposait même un bouton « code de démo ». Une 2FA qui accepte tout est pire
 // que pas de 2FA : elle donne une fausse assurance. Une vraie MFA se branchera
 // sur `supabase.auth.mfa.enroll/challenge/verify`.
-type Step = "role" | "credentials" | "change-password";
+// Plus de sélection de profil : l'écran listait tous les rôles de
+// l'institution (super-administrateur, président du conseil...) et ce
+// qu'ils permettent, à qui passait par là. Ce choix n'avait de toute
+// façon aucun effet : la destination est calculée après authentification
+// depuis `profile.role` lu en base, jamais depuis la carte cliquée.
+type Step = "credentials" | "change-password";
 
 function AuthPage() {
   const navigate = useNavigate();
   const { login: legacyLogin } = useApp();
   const storeLogin = useBoardStore((s) => s.login);
   const completePasswordChange = useBoardStore((s) => s.completePasswordChange);
-  const [step, setStep] = useState<Step>("role");
+  const [step, setStep] = useState<Step>("credentials");
   const [newPwd, setNewPwd] = useState("");
   const [newPwd2, setNewPwd2] = useState("");
-  const [role, setRole] = useState<Role | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  // Le PCA n'est pas un rôle mais un attribut (`est_president_ca`) porté par un
-  // administrateur : on le résout dynamiquement au clic (jamais codé en dur, le
-  // titulaire est mutable depuis Super Admin · Utilisateurs).
-  const [pcaMode, setPcaMode] = useState(false);
-  const [resolvingPCA, setResolvingPCA] = useState(false);
 
-  // Le choix du profil n'oriente que l'habillage de l'écran suivant : il ne
-  // pré-remplit plus aucun identifiant (les comptes réels étaient exposés en
-  // clair, tous avec le même mot de passe de démo). Le rôle effectif reste
-  // décidé par le profil en base après authentification, jamais par ce clic.
-  const pickRole = (r: Role) => {
-    setPcaMode(false);
-    setRole(r);
-    setEmail("");
-    setPassword("");
-    setStep("credentials");
-  };
 
-  // Aucun identifiant n'est pré-rempli. L'écran interrogeait auparavant la RPC
-  // `current_pca_email()` pour remplir l'email du titulaire — mais cette RPC est
-  // appelable SANS être connecté : c'était un endpoint public qui livrait
-  // l'adresse du Président du Conseil à qui la demandait. Le titre de PCA est de
-  // toute façon vérifié après authentification, via `profile.estPresidentCA`.
-  const pickPCA = () => {
-    setRole("admin"); // le PCA est un administrateur → même interface mobile
-    setPcaMode(true);
-    setEmail("");
-    setPassword("");
-    setStep("credentials");
-  };
 
   const submitCreds = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,95 +149,11 @@ function AuthPage() {
       {/* Right panel */}
       <div className="flex items-center justify-center p-6 md:p-12 bg-background">
         <div className="w-full max-w-md">
-          {step !== "change-password" && <Stepper step={step} />}
-
-          {step === "role" && (
-            <div className="animate-in fade-in slide-in-from-right-2">
-              <h1 className="text-3xl font-bold text-navy">Choisissez votre profil</h1>
-              <p className="mt-2 text-muted-foreground">
-                Chaque profil ouvre une interface adaptée à vos missions.
-              </p>
-              <div className="mt-8 grid gap-3">
-                {(Object.keys(ROLE_META) as Role[]).map((r) => {
-                  const m = ROLE_META[r];
-                  return (
-                    <button
-                      key={r}
-                      onClick={() => pickRole(r)}
-                      className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 text-left hover:border-gold hover:shadow-lg transition"
-                    >
-                      <div
-                        className={`h-12 w-12 rounded-xl bg-gradient-to-br ${m.color} flex items-center justify-center text-white font-bold`}
-                      >
-                        {m.short.slice(0, 2)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-semibold text-navy">{m.label}</div>
-                        <div className="text-xs text-muted-foreground">{m.description}</div>
-                      </div>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-gold group-hover:translate-x-1 transition" />
-                    </button>
-                  );
-                })}
-
-                {/* PCA — pas un rôle mais le titulaire (administrateur) du titre, résolu au clic. */}
-                <button
-                  onClick={pickPCA}
-                  disabled={resolvingPCA}
-                  className="group flex items-center gap-4 rounded-xl border border-gold/40 bg-gradient-to-br from-gold/5 to-transparent p-4 text-left hover:border-gold hover:shadow-lg transition disabled:opacity-60"
-                >
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-gold to-yellow-600 flex items-center justify-center text-white font-bold">
-                    {resolvingPCA ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Crown className="h-6 w-6" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-navy">PCA — Président du Conseil</div>
-                    <div className="text-xs text-muted-foreground">
-                      Discussions, présidence de séance, sceau du PV
-                    </div>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-gold group-hover:translate-x-1 transition" />
-                </button>
-
-                {/* Invité — mandataire de procuration externe : page dédiée, email +
-                    mot de passe (temporaire puis personnel), pas de prérempli possible. */}
-                <button
-                  onClick={() => navigate({ to: "/auth/invite" })}
-                  className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 text-left hover:border-gold hover:shadow-lg transition"
-                >
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white font-bold">
-                    <UserCheck className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-navy">Invité — Mandataire</div>
-                    <div className="text-xs text-muted-foreground">
-                      Vote, signature et présence au nom d'un membre représenté
-                    </div>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-gold group-hover:translate-x-1 transition" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === "credentials" && role && (
+          {step === "credentials" && (
             <form onSubmit={submitCreds} className="animate-in fade-in slide-in-from-right-2">
-              <button
-                type="button"
-                onClick={() => setStep("role")}
-                className="text-xs text-muted-foreground hover:text-navy flex items-center gap-1"
-              >
-                <ArrowLeft className="h-3 w-3" /> Changer de profil
-              </button>
-              <h1 className="text-3xl font-bold text-navy mt-4">Identifiants</h1>
+              <h1 className="text-3xl font-bold text-navy">Connexion</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Connexion en tant que{" "}
-                <span className="font-medium text-navy">
-                  {pcaMode ? "Président du Conseil (PCA)" : ROLE_META[role].label}
-                </span>
+                Accès réservé aux membres et aux services du Conseil.
               </p>
               <div className="mt-8 space-y-4">
                 <Field label="Email professionnel">
@@ -368,17 +255,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Stepper({ step }: { step: Step }) {
-  const steps: Step[] = ["role", "credentials"];
-  const idx = steps.indexOf(step);
-  return (
-    <div className="flex items-center gap-2 mb-8">
-      {steps.map((s, i) => (
-        <div key={s} className="flex-1 flex items-center gap-2">
-          <div className={`h-1.5 flex-1 rounded-full ${i <= idx ? "bg-gold" : "bg-border"}`} />
-        </div>
-      ))}
-      <span className="ml-2 text-xs text-muted-foreground">{idx + 1}/2</span>
-    </div>
-  );
-}
