@@ -11,7 +11,7 @@ import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { AppProvider } from "../lib/app-store";
-import { RoleSwitcher } from "../components/role-switcher";
+
 import { Toaster } from "../components/ui/sonner";
 import { useBootstrap } from "../hooks/useBootstrap";
 
@@ -126,7 +126,6 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AppProvider>
         <Outlet />
-        <RoleSwitcher />
         <Toaster position="top-right" />
       </AppProvider>
     </QueryClientProvider>

@@ -120,6 +120,9 @@ import {
 import { CanvasSignPad, SignatureRow, type Signature } from "./shared/signature-pad";
 import { NoMeetingScreen } from "./shared/no-meeting-screen";
 import { relativeTimeShort } from "./shared/utils";
+import { CLE_VUE, lireVueEnregistree, type Tab, type View } from "./shared/view-state";
+import { CalendrierScreen } from "./screens/calendrier-screen";
+import { SeancesScreen } from "./screens/seances-screen";
 
 // Rendu d'une notification selon l'événement métier qui l'a produite.
 const NOTIF_META: Record<NotificationType, { icon: any; color: string }> = {
@@ -157,35 +160,6 @@ function NotifBadge() {
 }
 
 
-// Liste runtime ET type dérivés l'un de l'autre : la vue restaurée après un
-// rafraîchissement doit être validée à l'exécution, et cette forme interdit
-// que les deux divergent (même dispositif que `SECTION_KEYS` côté Secrétariat).
-const TABS = ["home", "boardbook", "vote", "discussions", "pca", "notifs", "profile"] as const;
-type Tab = (typeof TABS)[number];
-type View = { tab: Tab; sub?: string; data?: any };
-
-// Écran courant de l'app mobile, conservé d'un rafraîchissement à l'autre.
-// Sans cela, un simple F5 ramenait toujours à l'Accueil, y compris en pleine
-// signature de PV. La vue complète est mémorisée (onglet + sous-écran + son
-// contexte), et RATTACHÉE À L'UTILISATEUR : pendant une démo on bascule d'un
-// profil à l'autre (RoleSwitcher), et restaurer l'écran d'un membre dans la
-// session d'un autre n'aurait aucun sens.
-const CLE_VUE = "mobile-view";
-
-function lireVueEnregistree(): { userId?: string; view: View } | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const brut = window.localStorage.getItem(CLE_VUE);
-    if (!brut) return null;
-    const parse = JSON.parse(brut) as { userId?: string; view?: View };
-    // Une vue écrite par une version antérieure (onglet renommé/supprimé
-    // depuis) ne doit pas produire un écran blanc : on la rejette.
-    if (!parse?.view || !TABS.includes(parse.view.tab)) return null;
-    return { userId: parse.userId, view: parse.view };
-  } catch {
-    return null; // JSON corrompu : on repart de l'Accueil
-  }
-}
 
 
 const AGENDA_POINTS = [
@@ -867,7 +841,7 @@ function MobileAdminAppScreen() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-24">
         {view.tab === "home" && !view.sub && <HomeScreen nav={nav} />}
         {view.tab === "home" &&
           view.sub === "meeting" &&
@@ -962,9 +936,9 @@ function MobileAdminAppScreen() {
           <ConsultationsScreen nav={nav} />
         )}
       </div>
-      <div className="bg-transparent px-4 pb-5 pt-1 shrink-0">
+      <div className="fixed bottom-0 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom,20px)] pt-2 z-50 pointer-events-none">
         <nav
-          className="bg-gradient-to-r from-indigo-100/20 to-blue-100/20 backdrop-blur-xl border border-white/30 rounded-2xl shadow-[0_8px_32px_rgba(13,27,62,0.08)] p-1"
+          className="bg-gradient-to-r from-indigo-100/20 to-blue-100/20 backdrop-blur-xl border border-white/30 rounded-2xl shadow-[0_8px_32px_rgba(13,27,62,0.08)] p-1 pointer-events-auto"
           aria-label="Navigation principale mobile"
         >
           <ul className={`grid gap-1 ${isGuest ? "grid-cols-3" : "grid-cols-5"}`}>
@@ -3618,20 +3592,6 @@ function MobileAdminAppScreen() {
   // couche texte, donc pas d'annotation possible sur une image.
   // Toutes les séances du Conseil, en grille mensuelle. Cliquer une séance ouvre
   // son détail (même écran que « Prochaine séance »).
-  function CalendrierScreen({ nav }: { nav: (v: View) => void }) {
-    return (
-      <div className="bg-[#F8FAFC] min-h-full">
-        <TopBar title="Mon Calendrier" onBack={() => nav({ tab: "profile" })} />
-        <div className="px-4 py-4">
-          <MeetingCalendar
-            reunions={realReunions}
-            compact
-            onOpen={(r) => nav({ tab: "home", sub: "meeting", data: { reunionId: r.id } })}
-          />
-        </div>
-      </div>
-    );
-  }
 
   // Consultation écrite hors séance. Le membre répond UNE fois (RLS
   // `cons_rep_insert_self` : soi-même, consultation ouverte, avant la date limite).
@@ -4227,79 +4187,6 @@ function MobileAdminAppScreen() {
     );
   }
 
-  function SeancesScreen({ nav }: { nav: (v: View) => void }) {
-    const seances = [...realReunions].sort((a, b) => b.date.localeCompare(a.date));
-    const STATUT: Record<string, { label: string; cls: string }> = {
-      planifiee: { label: "Planifiée", cls: "bg-sky-100 text-sky-700" },
-      en_cours: { label: "En cours", cls: "bg-amber-100 text-amber-700" },
-      terminee: { label: "Terminée", cls: "bg-emerald-100 text-emerald-700" },
-    };
-    const TYPE: Record<string, string> = {
-      ca_ordinaire: "Ordinaire",
-      ca_extraordinaire: "Extraordinaire",
-      comite: "Comité",
-    };
-    return (
-      <div className="bg-[#F8FAFC] min-h-full">
-        <TopBar title="Séances du Conseil" onBack={() => nav({ tab: "profile" })} />
-        <div className="px-5 py-4 space-y-3">
-          {seances.length === 0 ? (
-            <div className="py-16 flex flex-col items-center text-center gap-3">
-              <div className="h-14 w-14 rounded-2xl bg-slate-100 flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-slate-400" />
-              </div>
-              <div className="text-sm font-semibold text-navy">Aucune séance</div>
-              <div className="text-xs text-slate-500 max-w-[240px]">
-                Les séances du Conseil apparaîtront ici dès leur planification.
-              </div>
-            </div>
-          ) : (
-            seances.map((r) => {
-              const st = STATUT[r.statut] ?? {
-                label: r.statut,
-                cls: "bg-slate-100 text-slate-600",
-              };
-              return (
-                <div
-                  key={r.id}
-                  className="rounded-2xl bg-white border border-slate-100 p-4 shadow-sm flex gap-3"
-                >
-                  <div className="rounded-xl bg-navy text-gold px-3 py-2 text-center min-w-[58px] h-fit">
-                    <div className="text-[9px] uppercase">
-                      {new Date(r.date).toLocaleDateString("fr-FR", { month: "short" })}
-                    </div>
-                    <div className="text-xl font-bold leading-none">
-                      {new Date(r.date).getDate()}
-                    </div>
-                    <div className="text-[9px] mt-0.5">{r.heure ?? ""}</div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-bold text-navy text-sm">{r.titre}</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
-                      <MapPin className="h-3 w-3" /> {r.lieu ?? "Lieu à définir"}
-                    </div>
-                    <div className="mt-2 flex gap-1.5">
-                      <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {TYPE[r.type] ?? r.type}
-                      </span>
-                      <span
-                        className={`text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full ${st.cls}`}
-                      >
-                        {st.label}
-                      </span>
-                      <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {r.ordreDuJour.length} point(s)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    );
-  }
 
   function ProfileScreen({ nav }: { nav: (v: View) => void }) {
     const rows = [
