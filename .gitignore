@@ -41,11 +41,31 @@ dist-ssr
 supabase/.temp/
 supabase/dump/
 
-# Temporary scripts & notes from development
-*.cjs
+# Documents et spécifications contenant des infos sensibles (BNETD)
+TDR*.pdf
+*.pdf
+*.docx
+Trame.docx
+DOCS/
+
+# Fichiers d'analyse et notes MD
+EXPLICATION.md
+Fluxandcontext.md
+Resultats.md
+Récapitulatif.md
+Suite.md
 centalheure*.md
 nouveau*.md
+termetechniqueetrole.md
+
+# Scripts locaux
+*.cjs
+*.mjs
 cleanup-screens.cjs
 
 # PWA Vite dev output (if used)
 dev-dist/
+
+# Notes d'analyse internes
+centalheure*.md
+nouveau.md
