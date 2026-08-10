@@ -14,7 +14,13 @@ export function enregistrerServiceWorker(surMiseAJour?: SurMiseAJour) {
   // Le service worker exige HTTPS — sauf sur localhost, autorisé pour le dev.
   if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") return;
 
-  window.addEventListener("load", async () => {
+  // On attend la fin du chargement pour ne pas concurrencer les ressources
+  // critiques — MAIS il faut tester `readyState` d'abord : en mode SPA la
+  // coquille est déjà chargée quand cet effet React s'exécute, l'événement
+  // `load` est donc déjà passé et un écouteur ajouté maintenant ne se
+  // déclencherait JAMAIS. C'est ce qui faisait disparaître le service worker
+  // après le passage en SPA (le rendu serveur, plus lent, masquait le défaut).
+  const demarrer = async () => {
     try {
       const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
 
@@ -58,5 +64,8 @@ export function enregistrerServiceWorker(surMiseAJour?: SurMiseAJour) {
     } catch {
       // Un échec d'enregistrement ne doit jamais empêcher l'app de fonctionner.
     }
-  });
+  };
+
+  if (document.readyState === "complete") demarrer();
+  else window.addEventListener("load", demarrer, { once: true });
 }

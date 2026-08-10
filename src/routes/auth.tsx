@@ -104,8 +104,19 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      {/* Left institutional panel */}
+    <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2 bg-background">
+      {/* En-tête mobile avec l'image du conseil */}
+      <div className="relative h-[35vh] min-h-[280px] w-full lg:hidden shrink-0 overflow-hidden">
+        {/* On charge l'image Ca.png que vous venez d'ajouter */}
+        <img 
+          src="/Ca.png" 
+          alt="Réunion du Conseil" 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-navy/20" />
+      </div>
+
+      {/* Left institutional panel (Desktop only) */}
       <div className="relative hidden lg:flex flex-col justify-between p-12 bg-navy text-navy-foreground overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_20%,var(--gold),transparent_45%),radial-gradient(circle_at_70%_80%,var(--gold),transparent_45%)]" />
         <div className="relative">
@@ -147,7 +158,7 @@ function AuthPage() {
       </div>
 
       {/* Right panel */}
-      <div className="flex items-center justify-center p-6 md:p-12 bg-background">
+      <div className="relative z-10 flex-1 flex lg:items-center justify-center p-6 pt-10 md:p-12 bg-background rounded-t-[32px] -mt-10 lg:mt-0 lg:rounded-none shadow-[0_-10px_40px_rgba(0,0,0,0.15)] lg:shadow-none">
         <div className="w-full max-w-md">
           {step === "credentials" && (
             <form onSubmit={submitCreds} className="animate-in fade-in slide-in-from-right-2">
