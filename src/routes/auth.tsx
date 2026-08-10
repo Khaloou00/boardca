@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/brand-logo";
+// Politique de mot de passe partagée avec /auth/invite : une seule définition,
+// et une liste d'exclusion des mots de passe publiquement connus.
+import { evaluerMotDePasse, premierDefaut } from "@/lib/mot-de-passe";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -90,7 +93,12 @@ function AuthPage() {
   };
 
   const submitNewPassword = async () => {
-    if (newPwd.length < 8) return toast.error("Mot de passe : 8 caractères minimum");
+    // Politique commune à tous les écrans (voir lib/mot-de-passe). Ne PAS se
+    // contenter d'une longueur : `0101010101` fait 10 caractères, et c'est
+    // l'ancien mot de passe de démonstration, lisible dans l'historique public
+    // du dépôt — deux comptes ont pu le reprendre faute de ce contrôle.
+    const defaut = premierDefaut(newPwd);
+    if (defaut) return toast.error("Mot de passe trop faible", { description: defaut });
     if (newPwd !== newPwd2) return toast.error("Les deux mots de passe ne correspondent pas");
     if (newPwd === password)
       return toast.error("Choisissez un mot de passe différent de celui fourni");
@@ -276,7 +284,7 @@ function AuthPage() {
                 )}
                 <button
                   type="submit"
-                  disabled={loading || newPwd.length < 8 || newPwd !== newPwd2}
+                  disabled={loading || !evaluerMotDePasse(newPwd).valide || newPwd !== newPwd2}
                   className="w-full rounded-lg bg-gold text-gold-foreground font-semibold py-3 hover:brightness-110 transition inline-flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <CheckCircle2 className="h-5 w-5" /> Enregistrer et continuer

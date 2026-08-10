@@ -33,6 +33,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
+import { evaluerMotDePasse } from "@/lib/mot-de-passe";
 import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/auth_/invite")({
@@ -41,18 +42,6 @@ export const Route = createFileRoute("/auth_/invite")({
   head: () => ({ meta: [{ title: "Espace invité — BoardCA" }] }),
 });
 
-type Critere = { ok: boolean; label: string };
-
-function evaluerMotDePasse(pwd: string): { criteres: Critere[]; valide: boolean } {
-  const criteres: Critere[] = [
-    { ok: pwd.length >= 8, label: "Au moins 8 caractères" },
-    { ok: /[a-z]/.test(pwd), label: "Une minuscule" },
-    { ok: /[A-Z]/.test(pwd), label: "Une majuscule" },
-    { ok: /[0-9]/.test(pwd), label: "Un chiffre" },
-    { ok: /[^A-Za-z0-9]/.test(pwd), label: "Un caractère spécial (!@#$…)" },
-  ];
-  return { criteres, valide: criteres.every((c) => c.ok) };
-}
 
 type Etape = "accueil" | "creer-mdp" | "connexion";
 type Appareil = "telephone" | "tablette";
