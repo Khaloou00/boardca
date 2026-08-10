@@ -16,6 +16,7 @@ import {
   Globe2,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
+import { InstallButton } from "@/components/install-button";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -44,11 +45,13 @@ function Landing() {
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <header className="sticky top-0 z-40 backdrop-blur-md bg-background/85 border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-between">
-          <div className="flex flex-col items-center gap-1">
-            <BrandLogo imgClassName="h-6" />
-            <div className="text-center">
-              <div className="font-bold text-navy leading-tight tracking-tight">BoardCA  · République de Côte d'Ivoire</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
+          <div className="flex flex-col items-start gap-1 min-w-0">
+            <BrandLogo imgClassName="h-5 sm:h-6" />
+            <div className="min-w-0">
+              <div className="font-bold text-navy leading-tight tracking-tight text-xs sm:text-base">
+                BoardCA<span className="hidden sm:inline"> · République de Côte d'Ivoire</span>
+              </div>
 
             </div>
           </div>
@@ -68,9 +71,9 @@ function Landing() {
           </nav>
           <Link
             to="/auth"
-            className="inline-flex items-center gap-2 rounded-lg bg-navy text-navy-foreground px-4 py-2 text-sm font-medium hover:bg-navy-light transition shadow-md shadow-navy/20"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-navy text-navy-foreground px-3 sm:px-4 py-2 text-sm font-medium hover:bg-navy-light transition shadow-md shadow-navy/20"
           >
-            Accéder à la plateforme <ArrowRight className="h-4 w-4" />
+            <span className="hidden sm:inline">Accéder à la plateforme</span><span className="sm:hidden">Connexion</span> <ArrowRight className="h-4 w-4 shrink-0" />
           </Link>
         </div>
       </header>
@@ -85,7 +88,7 @@ function Landing() {
               <span className="h-1.5 w-1.5 rounded-full bg-gold animate-pulse" />
               Solution officielle · Bureau National d'Études Techniques et de Développement
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold leading-[1.05] tracking-tight">
+            <h1 className="text-[2rem] leading-[1.1] sm:text-5xl sm:leading-[1.05] md:text-7xl font-bold tracking-tight">
               Le Conseil d'Administration
               <br />
               <span className="text-gold">entièrement digital.</span>
@@ -103,7 +106,7 @@ function Landing() {
                 to="/auth"
                 className="inline-flex items-center gap-2 rounded-lg bg-gold text-gold-foreground px-6 py-3.5 font-semibold hover:brightness-110 transition shadow-lg shadow-gold/20"
               >
-                Démarrer la démonstration <ArrowRight className="h-4 w-4" />
+                Accéder à mon espace <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href="#cycle"
@@ -111,8 +114,11 @@ function Landing() {
               >
                 Voir le cycle complet
               </a>
+              {/* Ne s'affiche que si l'installation est réellement possible et que
+                  l'application n'est pas déjà installée — voir InstallButton. */}
+              <InstallButton className="inline-flex items-center gap-2 rounded-lg border border-gold/40 bg-gold/10 px-6 py-3.5 font-semibold text-gold hover:bg-gold/20 transition" />
             </div>
-            <div className="mt-12 grid grid-cols-4 gap-6 max-w-lg">
+            <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 max-w-lg">
               {[
                 { v: "38", l: "écrans" },
                 { v: "4", l: "profils" },

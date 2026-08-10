@@ -106,12 +106,12 @@ function AuthPage() {
   return (
     <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2 bg-background">
       {/* En-tête mobile avec l'image du conseil */}
-      <div className="relative h-[35vh] min-h-[280px] w-full lg:hidden shrink-0 overflow-hidden">
-        {/* On charge l'image Ca.png que vous venez d'ajouter */}
+      <div className="relative h-[35vh] min-h-[280px] w-full lg:hidden shrink-0 overflow-hidden bg-navy">
+        {/* L'image remplit l'espace (object-cover) comme sur la maquette validée */}
         <img 
           src="/Ca.png" 
           alt="Réunion du Conseil" 
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-navy/20" />
       </div>
