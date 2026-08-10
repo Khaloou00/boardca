@@ -2,7 +2,6 @@ import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
-import { VitePWA } from "vite-plugin-pwa";
 
 // Standard TanStack Start + Vite config.
 // The `@/*` alias (from tsconfig.json paths) is resolved natively via
@@ -14,6 +13,12 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  // NOTE 2026-08-10 : `vite-plugin-pwa` a été retiré. Dans le build
+  // multi-environnements de TanStack Start il s'exécutait par environnement
+  // sans jamais accrocher la fin du build client : le manifest était produit
+  // (deux fois, jusque dans dist/server/) mais AUCUN service worker n'était
+  // émis. Le service worker et le manifest sont désormais des fichiers de
+  // `public/`, copiés verbatim — voir public/sw.js et src/lib/pwa.ts.
   plugins: [
     tailwindcss(),
     tanstackStart({
@@ -21,35 +26,5 @@ export default defineConfig({
       server: { entry: "server" },
     }),
     viteReact(),
-    VitePWA({
-      strategies: "injectManifest",
-      srcDir: "src",
-      filename: "service-worker.ts",
-      registerType: "autoUpdate",
-      injectManifest: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg}"]
-      },
-      manifest: {
-        name: "BoardCA BNETD",
-        short_name: "BoardCA",
-        description: "Solution digitale de pilotage du CA BNETD",
-        theme_color: "#0f172a",
-        background_color: "#0f172a",
-        display: "standalone",
-        orientation: "portrait",
-        icons: [
-          {
-            src: "/Logo_bnetd_transparence.png",
-            sizes: "192x192",
-            type: "image/png"
-          },
-          {
-            src: "/Logo_bnetd_transparence.png",
-            sizes: "512x512",
-            type: "image/png"
-          }
-        ]
-      }
-    }),
   ],
 });

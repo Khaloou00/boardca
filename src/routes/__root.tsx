@@ -7,15 +7,15 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { toast } from "sonner";
 
 import appCss from "../styles.css?url";
 import { AppProvider } from "../lib/app-store";
 
 import { Toaster } from "../components/ui/sonner";
 import { useBootstrap } from "../hooks/useBootstrap";
-
-import { useRegisterSW } from "virtual:pwa-register/react";
+import { enregistrerServiceWorker } from "../lib/pwa";
 
 function NotFoundComponent() {
   return (
@@ -67,7 +67,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      // `viewport-fit=cover` : l'app peint sous l'encoche et la barre gestuelle
+      // de l'iPhone ; les marges sont reprises en CSS via env(safe-area-inset-*).
+      // `maximum-scale` n'est PAS bridé : brider le zoom casse l'accessibilité,
+      // et le lecteur PDF a besoin du pincer-zoomer.
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
+      // Couleur de la barre système, en clair comme en sombre.
+      { name: "theme-color", content: "#0D1B3E" },
+      // iOS ignore le manifest : ces balises sont le seul moyen d'obtenir le
+      // plein écran et le bon titre une fois l'app posée sur l'écran d'accueil.
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "BoardCA" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "application-name", content: "BoardCA" },
       { title: "BoardCA — Gouvernance du Conseil d'Administration BNETD" },
       {
         name: "description",
@@ -82,14 +98,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "theme-color", content: "#0f172a" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "BoardCA" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/Logo_bnetd_transparence.png", type: "image/png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", href: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { rel: "icon", href: "/icon-512.png", type: "image/png", sizes: "512x512" },
+      // iOS n'utilise ni le manifest ni `rel=icon` pour l'écran d'accueil.
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -120,7 +136,20 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useRegisterSW({ immediate: true });
+
+  // Service worker : hors ligne, installabilité et notifications push.
+  // La mise à jour n'est JAMAIS appliquée d'autorité — recharger l'app pendant
+  // une signature de PV ou une saisie ferait perdre le travail en cours.
+  useEffect(() => {
+    enregistrerServiceWorker((appliquer) => {
+      toast("Nouvelle version disponible", {
+        description: "Rechargez pour l'appliquer.",
+        duration: Infinity,
+        action: { label: "Recharger", onClick: appliquer },
+      });
+    });
+  }, []);
+
   useBootstrap(); // hydrate le profil Supabase + données cœur, ouvre les canaux Realtime
   return (
     <QueryClientProvider client={queryClient}>

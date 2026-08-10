@@ -1,0 +1,51 @@
+{
+  "name": "BoardCA — Conseil d'Administration BNETD",
+  "short_name": "BoardCA",
+  "description": "Convocations, Board Book, présences, votes et procès-verbaux du Conseil d'Administration du BNETD.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0D1B3E",
+  "theme_color": "#0D1B3E",
+  "categories": ["business", "productivity", "government"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Board Book",
+      "short_name": "Board Book",
+      "description": "Dossier de séance",
+      "url": "/mobile?tab=boardbook",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Alertes",
+      "short_name": "Alertes",
+      "description": "Mes notifications",
+      "url": "/mobile?tab=notifs",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
