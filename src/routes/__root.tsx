@@ -16,6 +16,10 @@ import { AppProvider } from "../lib/app-store";
 import { Toaster } from "../components/ui/sonner";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { enregistrerServiceWorker } from "../lib/pwa";
+// Import pour EFFET DE BORD : pose l'écouteur `beforeinstallprompt` dès
+// l'évaluation du bundle d'entrée. Le navigateur émet cet événement avant
+// que React ne monte : un écouteur posé dans un effet arrive trop tard.
+import "../lib/install-prompt";
 
 function NotFoundComponent() {
   return (

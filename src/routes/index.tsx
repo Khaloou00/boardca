@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { InstallButton } from "@/components/install-button";
+import { MobileOnboarding } from "@/components/mobile/onboarding";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -42,7 +43,19 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      {/* 
+        EXPÉRIENCE MOBILE : Onboarding Flow
+        Affiche 4 slides explicatifs et le bouton d'installation.
+      */}
+      <div className="lg:hidden">
+        <MobileOnboarding />
+      </div>
+
+      {/* 
+        EXPÉRIENCE BUREAU : Landing Page Complète
+      */}
+      <div className="hidden lg:block min-h-screen bg-background">
       {/* Nav */}
       <header className="sticky top-0 z-40 backdrop-blur-md bg-background/85 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
@@ -507,6 +520,7 @@ function Landing() {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }
