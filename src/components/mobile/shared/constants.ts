@@ -4,6 +4,7 @@
 import { Bell, BookOpen, ClipboardCheck, Coins, Crown, FileSignature, FileText,
   MailCheck, MessageSquare, Send, Vote as VoteIcon } from "lucide-react";
 import type { NotificationType } from "@/lib/notifications";
+import type { Signature } from "./signature-pad";
 
 // Rendu d'une notification selon l'événement métier qui l'a produite.
 export const NOTIF_META: Record<NotificationType, { icon: any; color: string }> = {
@@ -29,3 +30,11 @@ export const AGENDA_POINTS = [
   { n: 4, title: "Budget modificatif Q3", pages: 18, file: "Budget modificatif" },
   { n: 5, title: "Questions diverses", pages: 4, file: "Questions diverses" },
 ];
+
+// Mappe les méthodes de signature du domaine (trace|otp|biometrie) vers les
+// libellés accentués attendus par SignatureRow (tracé|otp|biométrie).
+export const METHODE_LABEL: Record<"trace" | "otp" | "biometrie", Signature["methode"]> = {
+  trace: "tracé",
+  otp: "otp",
+  biometrie: "biométrie",
+};

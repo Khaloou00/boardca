@@ -51,7 +51,10 @@ const signature = corps[0].replace(/^ {2}function \w+/, "").replace(/\s*\{\s*$/,
 // ── 3. Identifiants utilisés dans le corps ──
 // La SIGNATURE compte aussi : elle porte les types des props (ex. `View`).
 const texteCorps = corps.join("\n");
-const utilises = new Set(texteCorps.match(/[A-Za-z_$][\w$]*/g) ?? []);
+// Les commentaires ne créent pas de dépendance : une simple mention d'un
+// composant dans une note ne doit pas bloquer l'extraction (faux positif vécu).
+const sansCommentaires = texteCorps.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+const utilises = new Set(sansCommentaires.match(/[A-Za-z_$][\w$]*/g) ?? []);
 
 // ── 4. Valeurs du contexte de session réellement nécessaires ──
 const session = readFileSync(SESSION, "utf8");
