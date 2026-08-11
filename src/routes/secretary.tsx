@@ -17,6 +17,7 @@ import { GestionJetons } from "@/components/secretary/gestion-jetons";
 import { SectionBrowser } from "@/components/secretary/section-browser";
 import { SignatureTracker } from "@/components/secretary/signature-tracker";
 import { useBoardStore } from "@/store/useBoardStore";
+import { LogoutButtonClair } from "@/components/logout-button";
 import { useShallow } from "zustand/react/shallow";
 import type { Reunion } from "@/types/domain";
 import { ROLE_LABELS } from "@/lib/role-labels";
@@ -69,6 +70,14 @@ function SecretaryPage() {
           >
             <LogIn className="h-5 w-5" /> Se connecter en Secrétaire
           </button>
+
+          {/* Sans ceci, quelqu'un connecté avec le mauvais rôle reste bloqué ici :
+              le bouton ci-dessus mène à /auth mais laisse sa session ouverte. */}
+          {profile && (
+            <div className="mt-3 flex justify-center">
+              <LogoutButtonClair />
+            </div>
+          )}
         </div>
       </div>
     );

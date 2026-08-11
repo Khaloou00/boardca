@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useBoardStore } from "@/store/useBoardStore";
+import { LogoutButton } from "@/components/logout-button";
 import {
   LayoutDashboard,
   CalendarPlus,
@@ -153,9 +154,8 @@ export function SecretaryLayout({
             </div>
           ))}
         </nav>
-        <div
-          className={`p-4 border-t border-white/10 flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}
-        >
+        <div className="p-4 border-t border-white/10">
+          <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
           <div className="h-10 w-10 rounded-full bg-gold text-gold-foreground flex items-center justify-center font-semibold text-sm shrink-0">
             {profile?.initiales ?? "?"}
           </div>
@@ -170,6 +170,12 @@ export function SecretaryLayout({
               </div>
             </div>
           )}
+          </div>
+          {/* Ces espaces n'avaient plus AUCUNE déconnexion depuis la suppression
+              du RoleSwitcher, qui la portait. */}
+          <div className="mt-3">
+            <LogoutButton collapsed={collapsed} />
+          </div>
         </div>
       </aside>
 

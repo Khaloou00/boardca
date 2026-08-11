@@ -9,6 +9,7 @@ import { AuditPanel } from "@/components/super-admin/audit-panel";
 import { SettingsPanel } from "@/components/super-admin/settings-panel";
 import { ArchivesPanel } from "@/components/super-admin/archives-view";
 import { useBoardStore } from "@/store/useBoardStore";
+import { LogoutButtonClair } from "@/components/logout-button";
 import { useShallow } from "zustand/react/shallow";
 import { ROLE_LABELS } from "@/lib/role-labels";
 import { ShieldAlert, Loader2, LogIn } from "lucide-react";
@@ -60,6 +61,14 @@ function SuperAdminPage() {
           >
             <LogIn className="h-5 w-5" /> Se connecter en Super Administrateur
           </button>
+
+          {/* Sans ceci, quelqu'un connecté avec le mauvais rôle reste bloqué ici :
+              le bouton ci-dessus mène à /auth mais laisse sa session ouverte. */}
+          {profile && (
+            <div className="mt-3 flex justify-center">
+              <LogoutButtonClair />
+            </div>
+          )}
         </div>
       </div>
     );
