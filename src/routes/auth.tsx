@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/brand-logo";
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp";
 // Politique de mot de passe partagée avec /auth/invite : une seule définition,
 // et une liste d'exclusion des mots de passe publiquement connus.
 import { evaluerMotDePasse, premierDefaut } from "@/lib/mot-de-passe";
@@ -338,16 +339,23 @@ function AuthPage() {
               </p>
               <form onSubmit={submitLoginOtp} className="mt-6 space-y-4">
                 <Field label="Code de vérification">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    autoFocus
-                    value={loginOtpCode}
-                    onChange={(e) => setLoginOtpCode(e.target.value)}
-                    placeholder="Code reçu par email"
-                    className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-center text-lg tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-gold"
-                  />
+                  <div className="flex justify-center">
+                    <InputOTP maxLength={8} value={loginOtpCode} onChange={(val) => setLoginOtpCode(val)} autoFocus>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={1} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={2} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={3} className="w-10 h-14 text-lg" />
+                      </InputOTPGroup>
+                      <InputOTPSeparator />
+                      <InputOTPGroup>
+                        <InputOTPSlot index={4} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={5} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={6} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={7} className="w-10 h-14 text-lg" />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
                 </Field>
                 <button
                   type="submit"
@@ -430,16 +438,23 @@ function AuthPage() {
               </p>
               <form onSubmit={submitForgotOtp} className="mt-6 space-y-4">
                 <Field label="Code de vérification">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    autoFocus
-                    value={forgotCode}
-                    onChange={(e) => setForgotCode(e.target.value)}
-                    placeholder="Code reçu par email"
-                    className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-center text-lg tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-gold"
-                  />
+                  <div className="flex justify-center">
+                    <InputOTP maxLength={8} value={forgotCode} onChange={(val) => setForgotCode(val)} autoFocus>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={1} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={2} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={3} className="w-10 h-14 text-lg" />
+                      </InputOTPGroup>
+                      <InputOTPSeparator />
+                      <InputOTPGroup>
+                        <InputOTPSlot index={4} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={5} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={6} className="w-10 h-14 text-lg" />
+                        <InputOTPSlot index={7} className="w-10 h-14 text-lg" />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
                 </Field>
                 <button
                   type="submit"

@@ -116,7 +116,9 @@ export const createUsersSlice: StateCreator<BoardStore, [], [], UsersSlice> = (s
     const { error } = await supabase.functions.invoke("admin-users", {
       body: { action: "delete", id },
     });
-    if (error) throw error;
+    // Le vrai motif (ex. compte avec historique, cf. admin-users) est dans le
+    // corps de la réponse, pas dans `error` — même lecture que pour addUser.
+    if (error) throw new Error(await messageErreurEdge(error, "Échec de la suppression"));
     await get().logEvent("Suppression utilisateur", id);
     await get().fetchUsers();
   },

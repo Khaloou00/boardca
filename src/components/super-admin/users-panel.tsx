@@ -200,8 +200,8 @@ export function UsersPanel() {
       await removeUser(deleteTarget.id);
       toast.success(`${deleteTarget.nom} supprimé`);
       setDeleteTarget(null);
-    } catch {
-      toast.error("Échec de la suppression");
+    } catch (e: any) {
+      toast.error("Échec de la suppression", { description: e?.message });
     } finally {
       setBusy(false);
     }
@@ -512,6 +512,11 @@ export function UsersPanel() {
             <AlertDialogDescription>
               Cette action supprime définitivement le compte (authentification incluse) et le
               retire de ses comités, réunions et présences. Elle est irréversible.
+              <br />
+              <br />
+              Si ce compte a un historique (réunion créée, procuration, action, message…), la
+              suppression sera refusée pour préserver la traçabilité — suspendez-le plutôt (icône
+              bouclier dans le tableau).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

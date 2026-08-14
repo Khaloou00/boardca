@@ -151,8 +151,55 @@ Deno.serve(async (req: Request) => {
     if (body.action === "delete") {
       const { id } = body;
       if (!id) return json({ error: "Identifiant manquant" }, 400);
+
+      // GoTrue ne renvoie qu'une erreur générique et vide (`{"error":"{}"}`)
+      // quand la suppression est bloquée par une contrainte de clé étrangère
+      // (piège connu, voir mémoire du projet) — impossible d'en déduire la
+      // cause après coup. On vérifie donc AVANT d'essayer si ce compte a un
+      // historique dans une des tables qui référencent `profiles` SANS
+      // cascade (délibéré : préserver la traçabilité d'un CA).
+      const references: [string, string][] = [
+        ["reunions", "created_by"],
+        ["actions", "responsable_id"],
+        ["actions", "assigne_par"],
+        ["procurations", "de_user_id"],
+        ["procurations", "vers_user_id"],
+        ["documents", "uploaded_by"],
+        ["discussions", "created_by"],
+        ["discussion_messages", "auteur_id"],
+        ["audit_log", "user_id"],
+        ["pv_observations", "user_id"],
+        ["board_books", "genere_par"],
+        ["reports_seance", "reporte_par"],
+        ["jetons_presence", "paye_par"],
+        ["demandes_invite", "de_user_id"],
+        ["demandes_invite", "vers_user_id"],
+        ["demandes_invite", "decided_by"],
+        ["action_commentaires", "auteur_id"],
+        ["action_rapports", "auteur_id"],
+        ["baremes_jetons", "updated_by"],
+        ["annotations", "partage_avec_user_id"],
+      ];
+      const checks = await Promise.all(
+        references.map(async ([table, column]) => {
+          const { data } = await admin.from(table).select(column).eq(column, id).limit(1);
+          return data && data.length > 0;
+        }),
+      );
+      if (checks.some(Boolean)) {
+        return json(
+          {
+            error:
+              "Impossible de supprimer : ce compte a un historique (réunion créée, procuration, action, document, message, PV…). Suspendez-le plutôt — le compte reste tracé mais ne peut plus se connecter.",
+          },
+          409,
+        );
+      }
+
       const { error: deleteError } = await admin.auth.admin.deleteUser(id);
-      if (deleteError) return json({ error: deleteError.message }, 400);
+      if (deleteError) {
+        return json({ error: deleteError.message || "Échec de la suppression" }, 400);
+      }
       return json({ success: true });
     }
 
