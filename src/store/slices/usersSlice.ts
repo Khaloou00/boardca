@@ -68,9 +68,14 @@ export const createUsersSlice: StateCreator<BoardStore, [], [], UsersSlice> = (s
   },
 
   addUser: async (u) => {
-    // Le mot de passe transite par l'edge function (seule à porter la service_role) ;
-    // celle-ci pose `must_change_password` pour forcer un changement à la 1re connexion.
-    const { data, error } = await supabase.functions.invoke<{ id: string }>("admin-users", {
+    // Aucun mot de passe transmis : l'edge function crée le compte sans mot de
+    // passe et envoie un lien d'activation par email (voir admin-users).
+    const { data, error } = await supabase.functions.invoke<{
+      id: string;
+      emailSent: boolean;
+      emailError?: string;
+      lien?: string;
+    }>("admin-users", {
       body: { action: "create", ...u },
     });
     // Sur un 4xx, `functions.invoke` ne remonte qu'un message générique : le vrai
@@ -83,13 +88,12 @@ export const createUsersSlice: StateCreator<BoardStore, [], [], UsersSlice> = (s
     // ne doivent JAMAIS faire échouer la création : sinon on afficherait « échec »
     // alors que le compte est créé, et la relance échouerait en doublon.
     try {
-      // On ne journalise pas le mot de passe, évidemment.
       await get().logEvent("Création utilisateur", `${u.nom} (${u.role})`);
       await get().fetchUsers();
     } catch (e) {
       console.error("Compte créé, mais post-traitement en échec", e);
     }
-    return data.id;
+    return data;
   },
 
   updateUser: async (id, patch) => {

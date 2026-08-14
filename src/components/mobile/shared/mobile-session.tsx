@@ -152,6 +152,7 @@ import { CalendrierScreen } from "../screens/calendrier-screen";
 import { SeancesScreen } from "../screens/seances-screen";
 import { PvArchivesScreen } from "../screens/pv-archives-screen";
 import { ScanConfirmScreen } from "../screens/scan-confirm-screen";
+import { hasAnyOfflineDocument } from "@/lib/offline-storage";
 
 
 
@@ -689,6 +690,11 @@ function useMobileSessionValue() {
   }, []);
 
   const [downloaded, setDownloaded] = useState(false);
+  useEffect(() => {
+    hasAnyOfflineDocument()
+      .then((hasDocs) => setDownloaded(hasDocs))
+      .catch(() => undefined);
+  }, []);
   // Retours visuels immédiats, le temps que le refetch remonte le statut réel.
   // Ils sont RELATIFS à une convocation : sans remise à zéro, répondre à une
   // séance masquait à jamais la bannière et le bouton des séances suivantes.

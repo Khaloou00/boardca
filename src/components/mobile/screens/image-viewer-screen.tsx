@@ -1,7 +1,7 @@
-// ImageViewerScreen — extrait de `admin-app.tsx`.
 import { useState, useEffect } from "react";
 import { TopBar } from "../shared/ui-components";
 import { supabase } from "@/lib/supabase";
+import { getOfflineDocument } from "@/lib/offline-storage";
 import { Loader2, Maximize2, ZoomIn, ZoomOut } from "lucide-react";
 
 export function ImageViewerScreen({
@@ -19,14 +19,31 @@ export function ImageViewerScreen({
 
   useEffect(() => {
     let cancelled = false;
-    supabase.storage
-      .from("boardca-docs")
-      .createSignedUrl(storagePath, 3600)
-      .then(({ data }) => {
-        if (cancelled) return;
-        if (data?.signedUrl) setUrl(data.signedUrl);
-        else setEchec(true);
-      });
+
+    const charger = async () => {
+      // 1. Essayer de charger depuis le stockage hors-ligne
+      try {
+        const offlineBlob = await getOfflineDocument(storagePath);
+        if (offlineBlob) {
+          if (!cancelled) setUrl(URL.createObjectURL(offlineBlob));
+          return;
+        }
+      } catch (err) {
+        console.warn("Erreur lecture hors-ligne", err);
+      }
+
+      // 2. Sinon, demander au serveur
+      const { data } = await supabase.storage
+        .from("boardca-docs")
+        .createSignedUrl(storagePath, 3600);
+      
+      if (cancelled) return;
+      if (data?.signedUrl) setUrl(data.signedUrl);
+      else setEchec(true);
+    };
+
+    charger();
+
     return () => {
       cancelled = true;
     };

@@ -41,6 +41,25 @@ export function MobileOnboarding() {
       {/* Background decorations */}
       <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,var(--gold),transparent_40%),radial-gradient(circle_at_80%_80%,var(--gold),transparent_35%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.15))]" />
+
+      {/* Background images (full screen) */}
+      {slides.map((s, i) => (
+        s.image ? (
+          <div
+            key={`bg-${i}`}
+            className={`absolute inset-0 transition-opacity duration-500 ${
+              i === step ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <img
+              src={s.image}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-navy/85" />
+          </div>
+        ) : null
+      ))}
       
       {/* Top logo */}
       <div className="relative z-10 p-6 flex justify-center mt-10">
@@ -60,17 +79,6 @@ export function MobileOnboarding() {
                 : "opacity-0 translate-x-12 pointer-events-none"
             }`}
           >
-            {/* Image de fond s'il y en a une, avec un overlay sombre pour la lisibilité */}
-            {s.image && (
-              <>
-                <img 
-                  src={s.image} 
-                  alt="" 
-                  className="absolute inset-0 w-full h-full object-cover object-center"
-                />
-                <div className="absolute inset-0 bg-navy/85" />
-              </>
-            )}
 
             <div className="relative z-10 flex flex-col items-center">
               <div className="h-24 w-24 rounded-full bg-gold/20 flex items-center justify-center mb-8 border border-gold/30">

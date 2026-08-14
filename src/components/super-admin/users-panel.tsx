@@ -403,7 +403,7 @@ export function UsersPanel() {
           setCreating(false);
           setEditing(null);
         }}
-        onSave={async (data, password) => {
+        onSave={async (data) => {
           // Contrôle immédiat AVANT l'appel serveur : la cause n°1 d'un 400 est un
           // email déjà pris. On le dit tout de suite plutôt que via un aller-retour.
           if (!editing) {
@@ -426,18 +426,31 @@ export function UsersPanel() {
               });
               toast.success("Utilisateur mis à jour");
             } else {
-              await addUser({
+              const { emailSent, emailError, lien } = await addUser({
                 nom: data.nom!.trim(),
                 email: data.email!.trim().toLowerCase(),
                 role: data.role!,
                 telephone: data.telephone?.trim() || undefined,
                 qualite: data.qualite?.trim() || undefined,
-                password,
               });
-              toast.success("Compte créé", {
-                description:
-                  "Communiquez le mot de passe au membre : il devra le changer à sa première connexion.",
-              });
+              if (emailSent) {
+                toast.success("Compte créé", {
+                  description: "Un email d'activation a été envoyé : le membre y créera son mot de passe personnel.",
+                });
+              } else {
+                toast.warning("Compte créé, email non envoyé", {
+                  description: emailError ?? "Communiquez le lien d'activation manuellement.",
+                  action: lien
+                    ? {
+                        label: "Copier le lien",
+                        onClick: () => {
+                          navigator.clipboard.writeText(lien);
+                          toast.success("Lien copié");
+                        },
+                      }
+                    : undefined,
+                });
+              }
             }
             setCreating(false);
             setEditing(null);
@@ -536,15 +549,6 @@ function Champ({
   );
 }
 
-const MIN_PASSWORD = 8;
-
-// Mot de passe initial suggéré : lisible à dicter, au-dessus du minimum.
-function genererMotDePasse() {
-  const mots = ["Conseil", "Séance", "Quorum", "Mandat", "Dossier", "Rapport"];
-  const mot = mots[Math.floor(Math.random() * mots.length)];
-  return `${mot}${Math.floor(1000 + Math.random() * 9000)}!`;
-}
-
 function UserDialog({
   open,
   user,
@@ -556,25 +560,19 @@ function UserDialog({
   user: User | null;
   busy: boolean;
   onClose: () => void;
-  onSave: (u: Partial<User>, password: string) => void;
+  onSave: (u: Partial<User>) => void;
 }) {
   const [form, setForm] = useState<Partial<User>>({});
-  const [password, setPassword] = useState("");
   const current = { nom: "", email: "", role: "administrateur" as UserRole, ...user, ...form };
   const reset = () => {
     setForm({});
-    setPassword("");
   };
-  // Mot de passe requis à la CRÉATION seulement (l'édition ne le touche pas).
-  const passwordTropCourt = !user && password.length > 0 && password.length < MIN_PASSWORD;
   // Supabase rejette (« invalid format ») tout email non standard : espace, domaine
   // incomplet, accent… On valide AVANT l'envoi pour un retour immédiat.
   const emailBrut = (current.email ?? "").trim();
   const emailValide = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailBrut);
   const emailInvalide = !user && emailBrut.length > 0 && !emailValide;
-  const peutEnregistrer =
-    !!current.nom &&
-    (!!user || (emailValide && password.length >= MIN_PASSWORD));
+  const peutEnregistrer = !!current.nom && (!!user || emailValide);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && (reset(), onClose())}>
@@ -640,28 +638,9 @@ function UserDialog({
             />
           </div>
           {!user && (
-            <div>
-              <div className="flex items-center justify-between">
-                <Label>Mot de passe initial</Label>
-                <button
-                  type="button"
-                  onClick={() => setPassword(genererMotDePasse())}
-                  className="text-[13px] text-navy hover:text-gold font-medium"
-                >
-                  Générer
-                </button>
-              </div>
-              <Input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={`Au moins ${MIN_PASSWORD} caractères`}
-                autoComplete="new-password"
-              />
-              <div className={`text-[13px] mt-1 ${passwordTropCourt ? "text-red-600" : "text-muted-foreground"}`}>
-                {passwordTropCourt
-                  ? `Trop court : ${MIN_PASSWORD} caractères minimum.`
-                  : "Le membre le changera obligatoirement à sa première connexion."}
-              </div>
+            <div className="text-[13px] text-muted-foreground">
+              Un email d'activation sera envoyé à cette adresse : le membre y créera lui-même
+              son mot de passe personnel.
             </div>
           )}
         </div>
@@ -679,7 +658,7 @@ function UserDialog({
           <Button
             className="bg-navy hover:bg-navy-light"
             onClick={() => {
-              onSave(current, password);
+              onSave(current);
               reset();
             }}
             disabled={busy || !peutEnregistrer}

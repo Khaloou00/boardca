@@ -203,6 +203,9 @@ export function MeetingCreator({ onCreated }: { onCreated: (id: string) => void 
     if (busy) return;
     if (!title.trim()) return toast.error("Titre requis");
     if (!date) return toast.error("Choisissez la date de la réunion");
+    // La colonne `heure` est de type `time` : une chaîne vide y est refusée par
+    // Postgres et fait échouer toute la création.
+    if (!time) return toast.error("Choisissez l'heure de la réunion");
     // Une séance datée dans le passé part quand même en convocation, mais elle est
     // ensuite filtrée partout (calendrier du mois courant, « séance à venir » et
     // convocations du mobile) : les membres reçoivent l'alerte sans rien voir.

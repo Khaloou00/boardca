@@ -9,6 +9,7 @@
 // Confirmation obligatoire : ces écrans hébergent la rédaction du PV et la
 // création de séance, où un clic malheureux ferait perdre une saisie en cours.
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import { LogOut, Loader2 } from "lucide-react";
 import { useBoardStore } from "@/store/useBoardStore";
@@ -49,56 +50,59 @@ export function LogoutButton({ collapsed = false }: { collapsed?: boolean }) {
         {!collapsed && <span>Se déconnecter</span>}
       </button>
 
-      {confirme && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
-          onClick={() => !occupe && setConfirme(false)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="w-full max-w-md rounded-2xl bg-white p-6 text-left shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 shrink-0 rounded-xl bg-red-50 flex items-center justify-center">
-                <LogOut className="h-5 w-5 text-red-500" />
-              </div>
-              <div className="min-w-0">
-                <div className="font-bold text-navy">Quitter votre session ?</div>
-                <div className="text-[13px] text-slate-500 mt-1 leading-relaxed">
-                  Vous êtes connecté en tant que{" "}
-                  <span className="font-medium text-navy">{profile?.nom ?? "—"}</span>. Toute saisie
-                  en cours et non enregistrée sera perdue.
+      {confirme && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+              onClick={() => !occupe && setConfirme(false)}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div
+                className="w-full max-w-md rounded-2xl bg-white p-6 text-left shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 shrink-0 rounded-xl bg-red-50 flex items-center justify-center">
+                    <LogOut className="h-5 w-5 text-red-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-navy">Quitter votre session ?</div>
+                    <div className="text-[13px] text-slate-500 mt-1 leading-relaxed">
+                      Vous êtes connecté en tant que{" "}
+                      <span className="font-medium text-navy">{profile?.nom ?? "—"}</span>. Toute saisie
+                      en cours et non enregistrée sera perdue.
+                    </div>
+                  </div>
+                </div>
+                {/* `whitespace-nowrap` : sans lui « Se déconnecter » se coupait en deux
+                    lignes dans un bouton à moitié de largeur. */}
+                <div className="mt-5 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setConfirme(false)}
+                    disabled={occupe}
+                    className="whitespace-nowrap rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={partir}
+                    disabled={occupe}
+                    className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-red-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {occupe ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                    ) : (
+                      <LogOut className="h-4 w-4 shrink-0" />
+                    )}
+                    Déconnexion
+                  </button>
                 </div>
               </div>
-            </div>
-            {/* `whitespace-nowrap` : sans lui « Se déconnecter » se coupait en deux
-                lignes dans un bouton à moitié de largeur. */}
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setConfirme(false)}
-                disabled={occupe}
-                className="whitespace-nowrap rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={partir}
-                disabled={occupe}
-                className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-red-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-              >
-                {occupe ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-                ) : (
-                  <LogOut className="h-4 w-4 shrink-0" />
-                )}
-                Déconnexion
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </div>,
+            document.body
+          )
+        : null}
     </>
   );
 }

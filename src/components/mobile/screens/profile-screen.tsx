@@ -21,9 +21,6 @@ export function ProfileScreen({ nav }: { nav: (v: View) => void }) {
   } = useMobileSession();
 
   const rows = [
-    { icon: Fingerprint, label: "Biométrie Touch ID", value: "Activée" },
-    { icon: Shield, label: "2FA authentificateur", value: "Activée" },
-    { icon: Bell, label: "Notifications push", value: "Toutes" },
     {
       icon: Download,
       label: "Documents hors-ligne",

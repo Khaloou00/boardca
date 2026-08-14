@@ -47,14 +47,15 @@ export interface UsersSlice {
   fetchUsers: () => Promise<void>;
   fetchComites: () => Promise<void>;
   // Crée un vrai compte auth + profil via edge function (super_admin only).
+  // Aucun mot de passe posé ici : un lien d'activation à usage unique part par
+  // email, le nouvel utilisateur crée son propre mot de passe sur /auth/invite.
   addUser: (u: {
     nom: string;
     email: string;
     role: UserRole;
     telephone?: string;
     qualite?: string;
-    password: string;
-  }) => Promise<string>;
+  }) => Promise<{ id: string; emailSent: boolean; emailError?: string; lien?: string }>;
   updateUser: (
     id: string,
     patch: Partial<Pick<User, "nom" | "telephone" | "qualite" | "statut" | "role">>,

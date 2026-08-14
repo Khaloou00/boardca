@@ -5,55 +5,191 @@ import { useState, useEffect } from "react";
 import { ProgressLine, TopBar } from "../shared/ui-components";
 import { CheckCircle2, Loader2, Lock } from "lucide-react";
 import { useMobileSession } from "../shared/mobile-session";
+import { supabase } from "@/lib/supabase";
+import { saveDocumentOffline } from "@/lib/offline-storage";
 
 import type { View } from "../shared/view-state";
-import { AGENDA_POINTS } from "../shared/constants";
-export function DownloadScreen({ nav }: { nav: (v: View) => void }) {
-  const {
-    log,
-    meeting,
-    setDownloaded,
-  } = useMobileSession();
 
-  const [step, setStep] = useState(-1); // -1 cover, 0..n points, ==length means done
-  const done = step >= AGENDA_POINTS.length;
+export function DownloadScreen({ nav }: { nav: (v: View) => void }) {
+  const { log, meeting, boardBookReunion, setDownloaded, requireOnline } = useMobileSession();
+
+  const [step, setStep] = useState(-1);
+  const [downloading, setDownloading] = useState(true);
+  const [docsToDownload, setDocsToDownload] = useState<
+    { id: string; nom: string; storagePath: string; pages: number; tailleBytes: number }[]
+  >([]);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalSize, setTotalSize] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const done = step >= docsToDownload.length && docsToDownload.length > 0;
+
+  // 1. Découverte des fichiers à télécharger
+  useEffect(() => {
+    let cancelled = false;
+    if (!boardBookReunion) {
+      setErrorMessage("Aucune séance disponible pour le Board Book.");
+      setDownloading(false);
+      return;
+    }
+    if (!requireOnline("Le téléchargement")) {
+      setDownloading(false);
+      return;
+    }
+
+    Promise.all([
+      supabase
+        .from("board_books")
+        .select("id, pages, taille_bytes, storage_path")
+        .eq("reunion_id", boardBookReunion.id)
+        .maybeSingle(),
+      supabase
+        .from("documents")
+        .select("id, nom, pages, taille_bytes, storage_path")
+        .eq("reunion_id", boardBookReunion.id)
+        .not("storage_path", "is", null),
+    ])
+      .then(([bbRes, docsRes]) => {
+        if (cancelled) return;
+        const toDownload = [];
+        
+        const bb = bbRes.data as any;
+        if (bb && bb.storage_path) {
+          toDownload.push({
+            id: bb.id,
+            nom: "Board Book — PDF complet",
+            storagePath: bb.storage_path,
+            pages: bb.pages || 0,
+            tailleBytes: bb.taille_bytes || 0,
+          });
+        }
+
+        const pieces = (docsRes.data ?? []) as any[];
+        for (const p of pieces) {
+          toDownload.push({
+            id: p.id,
+            nom: p.nom,
+            storagePath: p.storage_path,
+            pages: p.pages || 0,
+            tailleBytes: p.taille_bytes || 0,
+          });
+        }
+
+        if (toDownload.length === 0) {
+          setErrorMessage("Aucun document à télécharger pour cette séance.");
+          setDownloading(false);
+          return;
+        }
+
+        setTotalPages(toDownload.reduce((sum, d) => sum + d.pages, 0));
+        setTotalSize(toDownload.reduce((sum, d) => sum + d.tailleBytes, 0));
+        setDocsToDownload(toDownload);
+        setStep(0); // Démarrer le téléchargement
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setErrorMessage("Erreur lors de la récupération des documents.");
+          setDownloading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [boardBookReunion]);
+
+  // 2. Téléchargement effectif séquentiel
+  useEffect(() => {
+    if (step < 0 || step >= docsToDownload.length) return;
+
+    let cancelled = false;
+    const currentDoc = docsToDownload[step];
+
+    const telecharger = async () => {
+      try {
+        // 2a. Obtenir l'URL signée
+        const { data: urlData, error: urlError } = await supabase.storage
+          .from("boardca-docs")
+          .createSignedUrl(currentDoc.storagePath, 60); // URL valide très peu de temps
+          
+        if (urlError || !urlData?.signedUrl) throw new Error("URL signée introuvable");
+
+        // 2b. Télécharger le blob
+        const response = await fetch(urlData.signedUrl);
+        if (!response.ok) throw new Error("Erreur réseau");
+        const blob = await response.blob();
+
+        // 2c. Enregistrer dans IndexedDB
+        if (cancelled) return;
+        await saveDocumentOffline(currentDoc.storagePath, blob);
+
+        // 2d. Passer au suivant (avec un petit délai visuel)
+        setTimeout(() => {
+          if (!cancelled) setStep((s) => s + 1);
+        }, 300);
+      } catch (err) {
+        console.error(err);
+        if (!cancelled) {
+          setErrorMessage("Le téléchargement a été interrompu. Vérifiez votre connexion.");
+          setDownloading(false);
+        }
+      }
+    };
+
+    telecharger();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [step, docsToDownload]);
+
+  // 3. Finalisation
   useEffect(() => {
     if (done) {
       setDownloaded(true);
+      setDownloading(false);
       log("Board Book téléchargé hors-ligne (mobile)", meeting.title);
-      return;
     }
-    const t = setTimeout(() => setStep((s) => s + 1), 550);
-    return () => clearTimeout(t);
-  }, [step, done]);
+  }, [done]);
 
-  const pct = done ? 100 : Math.round(((step + 1) / (AGENDA_POINTS.length + 1)) * 100);
-  const totalPages = AGENDA_POINTS.reduce((sum, p) => sum + p.pages, 0);
+  const pct = docsToDownload.length === 0 
+    ? 0 
+    : done ? 100 : Math.round((step / docsToDownload.length) * 100);
+
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return "Taille inconnue";
+    return (bytes / 1024 / 1024).toFixed(1) + " MB";
+  };
 
   return (
     <div>
       <TopBar title="Téléchargement" onBack={() => nav({ tab: "home", sub: "convocation" })} />
       <div className="px-5 py-4">
         <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
-          {!done ? (
+          {errorMessage ? (
+            <div className="text-center py-6">
+              <div className="text-sm font-semibold text-red-600 mb-2">Impossible de télécharger</div>
+              <div className="text-xs text-slate-500 mb-6">{errorMessage}</div>
+              <button
+                onClick={() => nav({ tab: "home" })}
+                className="w-full bg-navy text-white rounded-xl py-3 font-semibold"
+              >
+                Retour
+              </button>
+            </div>
+          ) : !done ? (
             <>
               <div className="flex items-center gap-2 text-navy font-semibold">
                 <Loader2 className="h-4 w-4 animate-spin text-gold" /> Téléchargement en cours…
               </div>
               <div className="mt-4 space-y-2">
-                <ProgressLine
-                  done={step >= -1 && step >= 0}
-                  label="Couverture & Sommaire"
-                  pages="—"
-                  active={step === -1}
-                />
-                {AGENDA_POINTS.map((p, i) => (
+                {docsToDownload.map((p, i) => (
                   <ProgressLine
-                    key={p.n}
+                    key={p.id}
                     done={step > i}
                     active={step === i}
-                    label={`Point ${p.n} — ${p.file}`}
-                    pages={`${p.pages} pages`}
+                    label={p.nom}
+                    pages={p.pages ? `${p.pages} pages` : "—"}
                   />
                 ))}
               </div>
@@ -77,12 +213,13 @@ export function DownloadScreen({ nav }: { nav: (v: View) => void }) {
               <div className="mt-3 font-bold text-navy">Board Book disponible hors-ligne</div>
               <div className="mt-2 text-[12px] text-slate-600 space-y-0.5">
                 <div>
-                  {totalPages} pages · 5,8 MB ·{" "}
+                  {totalPages > 0 ? `${totalPages} pages · ` : ""}
+                  {formatSize(totalSize)} ·{" "}
                   <span className="inline-flex items-center gap-1">
                     <Lock className="h-3 w-3" /> Chiffré AES-256
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-500">Valable jusqu'au 16/07/2026</div>
+                <div className="text-[11px] text-slate-500">Stocké de façon sécurisée sur votre appareil</div>
               </div>
               <button
                 onClick={() => nav({ tab: "boardbook" })}
