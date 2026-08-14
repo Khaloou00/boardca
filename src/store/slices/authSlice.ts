@@ -1,6 +1,7 @@
 import type { StateCreator } from "zustand";
 import { supabase } from "@/lib/supabase";
 import { nettoyerPushALaDeconnexion } from "@/lib/push";
+import { clearOfflineDocuments } from "@/lib/offline-storage";
 import { mapUser } from "@/lib/mappers";
 import type { BoardStore, AuthSlice } from "../types";
 
@@ -24,8 +25,12 @@ export const createAuthSlice: StateCreator<BoardStore, [], [], AuthSlice> = (set
   logout: async () => {
     // Cet appareil ne doit plus recevoir les notifications du compte qui
     // s'en va : sinon le suivant qui l'utilise verrait passer ses
-    // convocations et ses PV.
+    // convocations et ses PV. Même raisonnement pour les documents
+    // téléchargés pour le hors-ligne (IndexedDB, non chiffré, non scopé par
+    // utilisateur) : sur un appareil partagé, le suivant à se connecter
+    // pourrait sinon relire les Board Books du précédent.
     await nettoyerPushALaDeconnexion();
+    await clearOfflineDocuments().catch(() => {});
     await supabase.auth.signOut();
     set({ profile: null });
   },
