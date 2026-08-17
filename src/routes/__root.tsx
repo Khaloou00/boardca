@@ -74,11 +74,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       // `viewport-fit=cover` : l'app peint sous l'encoche et la barre gestuelle
       // de l'iPhone ; les marges sont reprises en CSS via env(safe-area-inset-*).
-      // `maximum-scale` n'est PAS bridé : brider le zoom casse l'accessibilité,
-      // et le lecteur PDF a besoin du pincer-zoomer.
       {
         name: "viewport",
-        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+        content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
       },
       // Couleur de la barre système, en clair comme en sombre.
       { name: "theme-color", content: "#0D1B3E" },
