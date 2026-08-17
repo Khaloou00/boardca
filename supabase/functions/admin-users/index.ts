@@ -131,7 +131,14 @@ Deno.serve(async (req: Request) => {
                   to_email: emailNorm,
                   to_name: nom,
                   titre: "Bienvenue chez BoardCA",
-                  message: `Bonjour ${nom},\n\nVotre compte BoardCA a été créé. Activez-le et créez votre mot de passe personnel via ce lien :\n\n${lien}\n\nCe lien est à usage unique.`,
+                  // Le template EmailJS échappe {{message}} (testé le 2026-08-17 :
+                  // des balises <a>/<br> s'affichent comme du texte brut, jamais
+                  // interprétées) — pas de HTML possible ici. Gmail détecte
+                  // quand même et rend cliquable une URL en texte brut isolée sur
+                  // sa propre ligne, d'où le \n\n de part et d'autre. Le template
+                  // affiche déjà "Bonjour {{to_name}}," avant {{message}} : ne
+                  // pas le répéter ici (doublon constaté).
+                  message: `Votre compte BoardCA a été créé. Activez-le et créez votre mot de passe personnel en ouvrant ce lien :\n\n${lien}\n\nCe lien est à usage unique.`,
                 },
               }),
             });

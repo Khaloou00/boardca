@@ -45,9 +45,24 @@ export const createAuthSlice: StateCreator<BoardStore, [], [], AuthSlice> = (set
 
   loadProfile: async () => {
     set({ authLoading: true });
-    const {
+    let {
       data: { user },
     } = await supabase.auth.getUser();
+    if (!user) {
+      // Sur iOS, un PWA installée relancée après avoir été balayée (le
+      // processus WKWebView est tué puis recréé, pas juste mis en pause)
+      // peut lire un localStorage pas encore totalement rattaché au disque
+      // au tout premier accès : la session existe réellement en local mais
+      // ce premier getUser() la rate (bug WebKit connu, pas un problème
+      // côté Supabase — https://bugs.webkit.org, "storage empty on cold
+      // launch of installed web app"). Un seul nouvel essai après une
+      // courte pause suffit ; coût négligeable pour une vraie déconnexion
+      // (délai d'affichage d'environ 300ms).
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      ({
+        data: { user },
+      } = await supabase.auth.getUser());
+    }
     if (!user) {
       set({ profile: null, authLoading: false, authReady: true });
       return;

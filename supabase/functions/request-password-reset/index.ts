@@ -113,7 +113,9 @@ Deno.serve(async (req: Request) => {
           to_email: email,
           to_name: profile.nom ?? "",
           titre: "Réinitialisation de mot de passe",
-          message: `Bonjour ${profile.nom ?? ""},\n\nVoici votre code de vérification pour réinitialiser votre mot de passe BoardCA :\n\n${code}\n\nCe code est valable une seule fois. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.`,
+          // Le template affiche déjà "Bonjour {{to_name}}," avant {{message}} —
+          // ne pas le répéter (doublon constaté le 2026-08-17, voir admin-users).
+          message: `Voici votre code de vérification pour réinitialiser votre mot de passe BoardCA :\n\n${code}\n\nCe code est valable une seule fois. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.`,
         },
       }),
     });
