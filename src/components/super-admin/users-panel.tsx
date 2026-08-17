@@ -47,6 +47,7 @@ import {
   AlertTriangle,
   Download,
   FileText,
+  Mail,
 } from "lucide-react";
 import { KpiTiles } from "./kpi-tiles";
 import { exporterCsv, exporterPdf, type TableauExport } from "@/lib/archive-export";
@@ -64,6 +65,7 @@ export function UsersPanel() {
   const addUser = useBoardStore((s) => s.addUser);
   const updateUser = useBoardStore((s) => s.updateUser);
   const removeUser = useBoardStore((s) => s.removeUser);
+  const resendActivation = useBoardStore((s) => s.resendActivation);
   const setPresidentCA = useBoardStore((s) => s.setPresidentCA);
 
   const [q, setQ] = useState("");
@@ -490,6 +492,40 @@ export function UsersPanel() {
                 />
               </div>
               <DialogFooter className="mt-2">
+                <Button
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      const { emailSent, emailError, lien } = await resendActivation(detail.id);
+                      if (emailSent) {
+                        toast.success("Email d'activation renvoyé", {
+                          description: `${detail.nom} pourra créer son mot de passe via le lien reçu.`,
+                        });
+                      } else {
+                        toast.warning("Lien généré, email non envoyé", {
+                          description: emailError ?? "Communiquez le lien d'activation manuellement.",
+                          action: lien
+                            ? {
+                                label: "Copier le lien",
+                                onClick: () => {
+                                  navigator.clipboard.writeText(lien);
+                                  toast.success("Lien copié");
+                                },
+                              }
+                            : undefined,
+                        });
+                      }
+                    } catch (e: any) {
+                      toast.error("Échec du renvoi de l'activation", { description: e?.message });
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  <Mail className="h-4 w-4 mr-2" /> Réactiver
+                </Button>
                 <Button
                   variant="ghost"
                   onClick={() => {

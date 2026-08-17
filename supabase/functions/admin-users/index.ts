@@ -19,6 +19,79 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Génère un lien d'activation à usage unique et envoie l'email correspondant
+// via EmailJS. Partagé entre `create` (nouveau compte) et `resend-activation`
+// (renvoi manuel depuis la fiche utilisateur) — même mécanique, seul le texte
+// du message change.
+async function envoyerActivation(
+  admin: ReturnType<typeof createClient>,
+  email: string,
+  nom: string,
+  construireMessage: (lien: string) => string,
+): Promise<{ emailSent: boolean; emailError?: string; lien?: string }> {
+  const { data: secrets } = await admin
+    .from("app_secrets")
+    .select("key, value")
+    .in("key", [
+      "emailjs_service_id",
+      "emailjs_template_id_generique",
+      "emailjs_public_key",
+      "emailjs_private_key",
+      "site_url",
+    ]);
+  const val = (k: string) => secrets?.find((s) => s.key === k)?.value;
+  const siteUrl = val("site_url") ?? "";
+
+  const { data: link, error: linkError } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+  });
+  if (linkError || !link) {
+    return {
+      emailSent: false,
+      emailError: linkError?.message ?? "Échec de la génération du lien d'activation",
+    };
+  }
+  const lien = `${siteUrl}/auth/invite?email=${encodeURIComponent(email)}&token=${encodeURIComponent(link.properties.hashed_token)}&type=activation`;
+
+  const serviceId = val("emailjs_service_id");
+  const templateId = val("emailjs_template_id_generique");
+  const publicKey = val("emailjs_public_key");
+  const privateKey = val("emailjs_private_key");
+  if (!serviceId || !templateId || !publicKey || !privateKey) {
+    return { emailSent: false, emailError: "Configuration EmailJS incomplète", lien };
+  }
+
+  try {
+    const resp = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id: serviceId,
+        template_id: templateId,
+        user_id: publicKey,
+        accessToken: privateKey,
+        template_params: {
+          to_email: email,
+          to_name: nom,
+          titre: "Bienvenue chez BoardCA",
+          message: construireMessage(lien),
+        },
+      }),
+    });
+    if (!resp.ok) {
+      return { emailSent: false, emailError: await resp.text().catch(() => "Échec de l'envoi"), lien };
+    }
+    return { emailSent: true, lien };
+  } catch (e) {
+    return {
+      emailSent: false,
+      emailError: e instanceof Error ? e.message : "Erreur d'envoi de l'email",
+      lien,
+    };
+  }
+}
+
 Deno.serve(async (req: Request) => {
   // Le navigateur envoie un préflight OPTIONS avant tout POST cross-origin.
   if (req.method === "OPTIONS") {
@@ -87,72 +160,42 @@ Deno.serve(async (req: Request) => {
 
       // Lien d'activation à usage unique — même mécanique que invite-guest : le jeton n'est
       // vérifié que sur un clic explicite côté client, jamais au chargement de la page.
-      const { data: secrets } = await admin
-        .from("app_secrets")
-        .select("key, value")
-        .in("key", [
-          "emailjs_service_id",
-          "emailjs_template_id_generique",
-          "emailjs_public_key",
-          "emailjs_private_key",
-          "site_url",
-        ]);
-      const val = (k: string) => secrets?.find((s) => s.key === k)?.value;
-      const siteUrl = val("site_url") ?? "";
-
-      let emailSent = false;
-      let emailError: string | undefined;
-      let lien: string | undefined;
-      try {
-        const { data: link, error: linkError } = await admin.auth.admin.generateLink({
-          type: "magiclink",
-          email: emailNorm,
-        });
-        if (linkError || !link) {
-          emailError = linkError?.message ?? "Échec de la génération du lien d'activation";
-        } else {
-          lien = `${siteUrl}/auth/invite?email=${encodeURIComponent(emailNorm)}&token=${encodeURIComponent(link.properties.hashed_token)}&type=activation`;
-
-          const serviceId = val("emailjs_service_id");
-          const templateId = val("emailjs_template_id_generique");
-          const publicKey = val("emailjs_public_key");
-          const privateKey = val("emailjs_private_key");
-
-          if (serviceId && templateId && publicKey && privateKey) {
-            const resp = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                service_id: serviceId,
-                template_id: templateId,
-                user_id: publicKey,
-                accessToken: privateKey,
-                template_params: {
-                  to_email: emailNorm,
-                  to_name: nom,
-                  titre: "Bienvenue chez BoardCA",
-                  // Le template EmailJS échappe {{message}} (testé le 2026-08-17 :
-                  // des balises <a>/<br> s'affichent comme du texte brut, jamais
-                  // interprétées) — pas de HTML possible ici. Gmail détecte
-                  // quand même et rend cliquable une URL en texte brut isolée sur
-                  // sa propre ligne, d'où le \n\n de part et d'autre. Le template
-                  // affiche déjà "Bonjour {{to_name}}," avant {{message}} : ne
-                  // pas le répéter ici (doublon constaté).
-                  message: `Votre compte BoardCA a été créé. Activez-le et créez votre mot de passe personnel en ouvrant ce lien :\n\n${lien}\n\nCe lien est à usage unique.`,
-                },
-              }),
-            });
-            emailSent = resp.ok;
-            if (!resp.ok) emailError = await resp.text().catch(() => "Échec de l'envoi");
-          } else {
-            emailError = "Configuration EmailJS incomplète";
-          }
-        }
-      } catch (e) {
-        emailError = e instanceof Error ? e.message : "Erreur d'envoi de l'email";
-      }
+      const { emailSent, emailError, lien } = await envoyerActivation(
+        admin,
+        emailNorm,
+        nom,
+        (lienGenere) =>
+          `Votre compte BoardCA a été créé. Activez-le et créez votre mot de passe personnel en ouvrant ce lien :\n\n${lienGenere}\n\nCe lien est à usage unique.`,
+      );
 
       return json({ id: created.user.id, emailSent, emailError, lien });
+    }
+
+    if (body.action === "resend-activation") {
+      const { id } = body;
+      if (!id) return json({ error: "Identifiant manquant" }, 400);
+
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("email, nom")
+        .eq("id", id)
+        .maybeSingle();
+      if (!profile?.email) return json({ error: "Utilisateur introuvable" }, 404);
+
+      // Redéclenche le même parcours qu'à la création (même si le compte a déjà
+      // été activé une fois) : plus simple et plus sûr que de deviner si un mot
+      // de passe existe déjà — même choix que invite-guest sur une redésignation.
+      await admin.from("profiles").update({ must_change_password: true }).eq("id", id);
+
+      const { emailSent, emailError, lien } = await envoyerActivation(
+        admin,
+        profile.email,
+        profile.nom ?? "",
+        (lienGenere) =>
+          `Votre accès à BoardCA a été réactivé. Créez (ou recréez) votre mot de passe personnel en ouvrant ce lien :\n\n${lienGenere}\n\nCe lien est à usage unique.`,
+      );
+
+      return json({ emailSent, emailError, lien });
     }
 
     if (body.action === "delete") {

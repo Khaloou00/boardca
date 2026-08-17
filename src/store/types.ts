@@ -61,6 +61,9 @@ export interface UsersSlice {
     patch: Partial<Pick<User, "nom" | "telephone" | "qualite" | "statut" | "role">>,
   ) => Promise<void>;
   removeUser: (id: string) => Promise<void>; // supprime le compte auth (cascade profil/comités/réunions)
+  // Renvoie un lien d'activation (nouveau ou pas) et repose must_change_password :
+  // utile si l'email initial n'est jamais arrivé, ou pour forcer une réactivation.
+  resendActivation: (id: string) => Promise<{ emailSent: boolean; emailError?: string; lien?: string }>;
   // Désigne (ou retire avec null) le PCA — atomique côté DB, un seul actif à la fois.
   setPresidentCA: (userId: string | null) => Promise<void>;
   addComite: (c: { nom: string; description?: string; presidentId?: string }) => Promise<string>;

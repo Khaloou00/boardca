@@ -112,6 +112,22 @@ export const createUsersSlice: StateCreator<BoardStore, [], [], UsersSlice> = (s
     await get().fetchUsers();
   },
 
+  resendActivation: async (id) => {
+    const { data, error } = await supabase.functions.invoke<{
+      emailSent: boolean;
+      emailError?: string;
+      lien?: string;
+    }>("admin-users", {
+      body: { action: "resend-activation", id },
+    });
+    if (error || !data) {
+      throw new Error(await messageErreurEdge(error, "Échec du renvoi de l'activation"));
+    }
+    await get().logEvent("Renvoi activation utilisateur", id);
+    await get().fetchUsers();
+    return data;
+  },
+
   removeUser: async (id) => {
     const { error } = await supabase.functions.invoke("admin-users", {
       body: { action: "delete", id },
