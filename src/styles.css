@@ -114,7 +114,10 @@
   }
   input,
   textarea,
-  [contenteditable="true"] {
+  [contenteditable="true"],
+  .textLayer,
+  .textLayer * {
+    -webkit-touch-callout: default;
     -webkit-user-select: auto;
     user-select: auto;
   }
